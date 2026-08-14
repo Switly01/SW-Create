@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function Link({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) {
   return <a href={href} {...props}>{children}</a>;
@@ -64,17 +64,35 @@ const systemStats = [
 
 export function BrandSite() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cursor, setCursor] = useState({ x: -100, y: -100 });
+  const cursorOrbitRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onMove = (event: PointerEvent) => setCursor({ x: event.clientX, y: event.clientY });
+    const orbit = cursorOrbitRef.current;
+    const finePointer = window.matchMedia("(pointer: fine)");
+    if (!orbit || !finePointer.matches) return;
+
+    let frame = 0;
+    let x = -100;
+    let y = -100;
+    const paint = () => {
+      frame = 0;
+      orbit.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    };
+    const onMove = (event: PointerEvent) => {
+      x = event.clientX;
+      y = event.clientY;
+      if (!frame) frame = window.requestAnimationFrame(paint);
+    };
     window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (
     <main className="site-shell sw-character-site">
-      <div className="cursor-orbit" style={{ transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)` }} />
+      <div ref={cursorOrbitRef} className="cursor-orbit" aria-hidden="true" />
 
       <header className="topbar">
         <Link className="brand" href="#top" aria-label="SW Create ana sayfa">

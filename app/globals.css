@@ -20,7 +20,7 @@ a { color: inherit; text-decoration: none; }
 ::selection { background: var(--acid); color: var(--ink); }
 
 .site-shell { min-height: 100vh; overflow: clip; }
-.cursor-orbit { position: fixed; z-index: 90; width: 24px; height: 24px; margin: -12px; border: 1px solid var(--acid); border-radius: 50%; pointer-events: none; mix-blend-mode: difference; transition: width .16s ease, height .16s ease; }
+.cursor-orbit { position: fixed; z-index: 90; width: 24px; height: 24px; margin: -12px; border: 1px solid var(--acid); border-radius: 50%; pointer-events: none; mix-blend-mode: difference; transform: translate3d(-100px, -100px, 0); transition: width .16s ease, height .16s ease; will-change: transform; contain: layout paint; }
 .topbar { position: absolute; inset: 0 0 auto; z-index: 60; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(24px, 4vw, 72px); border-bottom: 1px solid var(--line); }
 .brand { display: inline-flex; align-items: center; gap: 12px; font-family: var(--font-display), sans-serif; letter-spacing: -.03em; }
 .brand-mark { width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid var(--paper); border-radius: 50%; background: var(--ink); overflow: hidden; }
@@ -168,7 +168,15 @@ footer { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: ce
   .closing-section p { font-size: 52px; } footer { grid-template-columns: 1fr; }.account-art { min-height: 310px; padding: 24px; }.account-quote { left: 24px; right: 24px; bottom: 30px; }.account-quote p { font-size: 40px; }.account-signal { display: none; }.account-panel { padding-inline: 20px; }.account-hub-head { display: grid; }.account-nav { grid-template-columns: 1fr; }.account-nav button { border-right: 0; border-bottom: 1px solid var(--ink); }.account-nav button:last-child { border-bottom: 0; }.account-summary-grid { grid-template-columns: 1fr; }.account-summary-grid article:last-child { grid-column: auto; }.account-section-title, .security-row, .account-hub-footer { align-items: flex-start; flex-direction: column; }.entitlement { grid-template-columns: 30px 1fr; }.entitlement b { grid-column: 2; width: max-content; }
 }
 
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+/* Keep short interface feedback usable when Windows requests reduced motion.
+   Only decorative continuous movement is slowed; it is no longer collapsed to
+   a single frame, which made desktop interactions look broken. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .cursor-orbit { display: none; }
+  .hero-ticker { animation-duration: 48s !important; }
+  .rotating-word { animation-duration: 24s !important; }
+}
 
 /* Dark surface system */
 .products-section { background: #0b0c11; color: var(--paper); }

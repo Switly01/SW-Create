@@ -152,5 +152,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sw-character-site .orbit, .sw-character-site .topbar-signal i, .sw-character-site .pulse-dot { animation: none !important; }
+  .sw-character-site .orbit-one { animation-duration: 38s !important; }
+  .sw-character-site .orbit-two { animation-duration: 60s !important; }
+  .sw-character-site .orbit-three { animation-duration: 26s !important; }
+  .sw-character-site .topbar-signal i,
+  .sw-character-site .pulse-dot { animation-duration: 3.6s !important; }
 }
