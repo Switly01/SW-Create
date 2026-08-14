@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./brand-character.css";
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
     description: "Yaratıcı ürünlerin işletim sistemi.",
     url: "https://swcreate.com",
     siteName: "SW Create",
-    images: ["/brand/swcreate-orbit-core.png"],
+    images: ["/og.png"],
     locale: "tr_TR",
     type: "website",
   },
