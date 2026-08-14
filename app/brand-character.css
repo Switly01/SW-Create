@@ -123,7 +123,7 @@
 @media (max-width: 1100px) {
   .sw-character-site .topbar-signal { display: none; }
   .sw-character-site .hero-copy { width: 54vw; min-width: 0; }
-  .sw-character-site .hero h1 { font-size: clamp(56px, 7.3vw, 82px); line-height: .88; }
+  .sw-character-site .hero h1 { font-size: clamp(56px, 7.3vw, 82px); line-height: 1; }
   .sw-character-site .hero-lead { max-width: 520px; }
   .sw-character-site .hero-core { right: -14vw; width: 58vw; opacity: .88; }
   .sw-character-site .signal-node { min-width: 150px; }
