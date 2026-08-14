@@ -182,6 +182,22 @@ async function accountPayload(env, user) {
   };
 }
 
+async function publicStats(env, request) {
+  const now = Math.floor(Date.now() / 1000);
+  const activeSince = now - (15 * 60);
+  const [accounts, active] = await Promise.all([
+    env.DB.prepare("SELECT COUNT(*) AS total FROM sw_users").first(),
+    env.DB.prepare("SELECT COUNT(DISTINCT user_id) AS total FROM sw_sessions WHERE expires_at > ? AND last_seen_at >= ?")
+      .bind(now, activeSince).first(),
+  ]);
+  const headers = corsHeaders(request);
+  headers.set("cache-control", "public, max-age=30, s-maxage=30");
+  return new Response(JSON.stringify({
+    registeredAccounts: Number(accounts?.total || 0),
+    activeUsers: Number(active?.total || 0),
+  }), { status: 200, headers });
+}
+
 async function register(env, request) {
   await rateLimit(env, request, "register", 6, 60 * 60);
   const body = await parseBody(request);
@@ -404,6 +420,7 @@ export default {
     const url = new URL(request.url);
     try {
       if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity" });
+      if (request.method === "GET" && url.pathname === "/api/stats") return await publicStats(env, request);
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/start") return await beginOAuth(env, request, "google");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/start") return await beginOAuth(env, request, "kick");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/callback") return await finishOAuth(env, request, "google");
