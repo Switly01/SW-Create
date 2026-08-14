@@ -32,7 +32,7 @@ async function passwordDigest(password, salt, pepper) {
     ["deriveBits"],
   );
   const result = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt: new TextEncoder().encode(salt), iterations: 210_000 },
+    { name: "PBKDF2", hash: "SHA-256", salt: new TextEncoder().encode(salt), iterations: 100_000 },
     key,
     256,
   );

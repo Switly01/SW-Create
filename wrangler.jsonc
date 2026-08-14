@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "swcreate-identity",
-      "database_id": "REPLACE_AFTER_D1_CREATE",
+      "database_id": "f99e0025-196b-4b12-924f-5c7ada2a02c4",
       "migrations_dir": "migrations"
     }
   ],
