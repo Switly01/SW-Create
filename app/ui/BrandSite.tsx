@@ -130,7 +130,10 @@ export function BrandSite() {
           <div className="orbit orbit-two" aria-hidden="true" />
           <div className="orbit orbit-three" aria-hidden="true" />
           <div className="core-image">
-            <Image src="/brand/swcreate-orbit-core.png" alt="SW Create yaratıcı çekirdeği" fill sizes="(max-width: 900px) 82vw, 46vw" priority />
+            <span className="core-logo-shell">
+              <Image className="core-logo-image" src="/brand/swcreate-logo.png" alt="SW Create" width={260} height={260} priority />
+            </span>
+            <span className="core-logo-code" aria-hidden="true">SW / CORE 001</span>
           </div>
           <a className="signal-node node-play" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY STREAMERS <b>LIVE</b></a>
           <a className="signal-node node-connect" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY CONNECT <b>BETA</b></a>
@@ -138,10 +141,6 @@ export function BrandSite() {
           <div className="core-readout"><span>CREATIVE GRAVITY</span><strong>100%</strong><small>Ideas in orbit</small></div>
         </div>
 
-        <div className="hero-ticker" aria-hidden="true">
-          <span>DESIGN WITH INTENT ✦ BUILD WITH CHARACTER ✦ SHIP WHAT MATTERS ✦ </span>
-          <span>DESIGN WITH INTENT ✦ BUILD WITH CHARACTER ✦ SHIP WHAT MATTERS ✦ </span>
-        </div>
       </section>
 
       <section className="system-strip" aria-label="SW Create sistem özeti">
