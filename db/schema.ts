@@ -71,3 +71,16 @@ export const waitlist = sqliteTable(
   },
   (table) => [uniqueIndex("sw_waitlist_email_plan_unique").on(table.email, table.plan)],
 );
+
+export const identityProfiles = sqliteTable(
+  "sw_identity_profiles",
+  {
+    userId: text("user_id").primaryKey(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    identityName: text("identity_name"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("sw_identity_profiles_email_unique").on(table.email)],
+);

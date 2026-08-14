@@ -27,3 +27,12 @@ test("hesap ve yasal sayfalar erişilebilir", async () => {
     assert.equal(response.status, 200);
   }
 });
+
+test("hesap sayfası güvenli SW Identity girişini sunar", async () => {
+  const response = await render("/account");
+  const html = await response.text();
+  assert.match(html, /SW IDENTITY/);
+  assert.match(html, /ChatGPT ile güvenli giriş/);
+  assert.match(html, /signin-with-chatgpt/);
+  assert.doesNotMatch(html, /type="password"/);
+});
