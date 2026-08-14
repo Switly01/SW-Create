@@ -169,3 +169,60 @@ footer { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: ce
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* Dark surface system */
+.products-section { background: #0b0c11; color: var(--paper); }
+.product-list { border-color: rgba(243,239,223,.72); }
+.product-card { border-color: rgba(243,239,223,.34); }
+.product-main > span, .section-heading > p:last-child { color: #bdb8aa; }
+.plan-card.edition { border-color: #5f4b92; background: linear-gradient(145deg, #17131f, #0c0d12); color: var(--paper); }
+.plan-card.edition ul { color: #bcb5c0; }
+.plan-card.edition a { border-color: var(--acid); background: var(--acid); color: var(--ink); }
+footer { background: #07080c; color: var(--paper); border-top: 1px solid rgba(243,239,223,.16); }
+footer a { color: inherit; }
+
+.account-shell { background: #08090e; color: var(--paper); }
+.auth-box > p, .selected-plan small, .identity-entry p { color: #aaa596; }
+.selected-plan { background: rgba(119,54,255,.14); }
+.auth-tabs { border-color: rgba(243,239,223,.65); }
+.auth-tabs button { color: #a7a294; }
+.auth-tabs button.active { background: var(--paper); color: var(--ink); }
+.identity-entry, .account-summary-grid article, .security-card { border-color: rgba(243,239,223,.24); background: rgba(255,255,255,.045); }
+.identity-benefits { color: #b6b0a1; }
+.identity-benefits i { background: var(--acid); }
+.identity-legal { color: #928c7f; }
+.auth-status.error { color: #ff817a; }
+.auth-status.success { color: var(--acid); }
+.account-live, .account-summary-grid article, .profile-form input, .security-card, .security-row { border-color: rgba(243,239,223,.28); }
+.account-nav { border-color: rgba(243,239,223,.68); }
+.account-nav button { border-color: rgba(243,239,223,.35); color: var(--paper); }
+.account-nav button.active { background: var(--paper); color: var(--ink); }
+.account-summary-grid strong, .account-section-title > small { color: var(--cyan); }
+.account-summary-grid small, .entitlement-index, .entitlement small, .profile-form > p, .security-card p { color: #9e988a; }
+.account-section-title { border-color: rgba(243,239,223,.66); }
+.entitlement { border-color: rgba(243,239,223,.2); }
+.entitlement div strong { color: var(--paper); }
+.profile-form input { background: rgba(255,255,255,.06); color: var(--paper); }
+.profile-form input:focus { border-color: var(--cyan); box-shadow: 5px 5px 0 rgba(0,224,255,.4); }
+.profile-form input:disabled { color: #a8a294; background: rgba(255,255,255,.035); }
+.verified-pill { background: rgba(172,255,47,.14); color: var(--acid); }
+.signout-button { background: rgba(255,91,77,.05); color: #ff817a; }
+.account-hub-footer { background: transparent; color: #918b7e; border-color: rgba(243,239,223,.2); padding-inline: 0; padding-bottom: 0; }
+
+.social-auth { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.social-auth-button { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 11px; border: 1px solid rgba(243,239,223,.28); background: #11131a; color: var(--paper); font-size: 12px; font-weight: 850; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.social-auth-button svg { width: 21px; height: 21px; flex: 0 0 auto; }
+.social-auth-button:hover { border-color: var(--cyan); background: #171a23; transform: translateY(-2px); }
+.social-auth-button.kick { background: #050605; color: #53fc18; }
+.social-auth-button.kick:hover { border-color: #53fc18; background: #10170e; }
+.social-auth-button.kick span { color: var(--paper); }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 4px; color: #8f897c; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: rgba(243,239,223,.2); }
+
+.legal-page { background: #08090e; color: var(--paper); }
+.legal-page .brand-mark { border-color: var(--paper); background: #101116; }
+.legal-content p, .legal-content li { color: #b8b2a4; }
+
+@media (max-width: 560px) {
+  .social-auth { grid-template-columns: 1fr; }
+}

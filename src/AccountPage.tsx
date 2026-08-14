@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { apiRequest, type SwAccount } from "./api";
+import { API_BASE, apiRequest, type SwAccount } from "./api";
 
 type View = "overview" | "profile" | "security";
 type Mode = "login" | "register";
@@ -21,6 +21,21 @@ function AccountPanel() {
   const [status, setStatus] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   useEffect(() => {
+    const oauthResult = new URLSearchParams(window.location.search);
+    const oauthError = oauthResult.get("oauth_error");
+    if (oauthError) {
+      const messages: Record<string, string> = {
+        configuration: "Bu giriş yöntemi henüz yapılandırılmadı.",
+        cancelled: "Giriş işlemi iptal edildi.",
+        expired: "Giriş bağlantısının süresi doldu. Yeniden dene.",
+        profile: "Hesap bilgileri sağlayıcıdan alınamadı.",
+        failed: "Sosyal giriş şu anda tamamlanamadı.",
+      };
+      setStatus({ type: "error", text: messages[oauthError] || messages.failed });
+    } else if (oauthResult.get("oauth") === "success") {
+      setStatus({ type: "success", text: "SW hesabına güvenli biçimde giriş yapıldı." });
+      window.history.replaceState({}, "", "/account/");
+    }
     apiRequest<SwAccount>("/api/account")
       .then((data) => {
         setAccount(data);
@@ -105,6 +120,18 @@ function AccountPanel() {
             <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setStatus(null); }}>Giriş yap</button>
             <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "active" : ""} onClick={() => { setMode("register"); setStatus(null); }}>Hesap oluştur</button>
           </div>
+
+          <div className="social-auth" aria-label="Sosyal hesapla devam et">
+            <a className="social-auth-button google" href={`${API_BASE}/api/auth/oauth/google/start`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.3Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.2H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6Z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.8A9.7 9.7 0 0 0 3.1 7.5l3.3 2.6C7.2 7.7 9.4 5.9 12 5.9Z"/></svg>
+              <span>Google ile devam et</span>
+            </a>
+            <a className="social-auth-button kick" href={`${API_BASE}/api/auth/oauth/kick/start`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 2h8v6h2V6h2V4h6v6h-2v2h2v10h-8v-6h-2v2H9v4H3V2Z"/></svg>
+              <span>Kick ile devam et</span>
+            </a>
+          </div>
+          <div className="auth-divider"><span>veya e-posta ile</span></div>
 
           <form className="auth-form profile-form" onSubmit={submit}>
             {mode === "register" && <label>GÖRÜNEN AD<input name="displayName" autoComplete="name" minLength={2} maxLength={48} required /></label>}
