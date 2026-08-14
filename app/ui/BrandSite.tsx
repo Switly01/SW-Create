@@ -34,14 +34,14 @@ const products = [
     name: "Play Connect",
     kind: "Tarayıcı veri köprüsü",
     copy: "Bağış platformlarını tek bir güvenli veri katmanında buluşturan ücretsiz tarayıcı bağlantısı.",
-    state: "BETA",
+    state: "DENEME",
     color: "coral",
     href: "https://pstreamers.com",
   },
   {
     index: "03",
-    signal: "SW/UNKNOWN-003",
-    name: "Next by SW",
+    signal: "SW/GİZLİ-003",
+    name: "SW Sonraki",
     kind: "Gizli frekans",
     copy: "Üreticilerin dijital gelirlerini ve iş akışlarını yeniden düşünmek için çekirdekte hazırlanıyor.",
     state: "YAKINDA",
@@ -59,13 +59,52 @@ const principles = [
 const systemStats = [
   ["02", "Yayındaki ürün"],
   ["01", "Ortak SW hesabı"],
-  ["IST", "Merkez koordinat"],
+  ["SW", "Dijital merkez"],
   ["∞", "Üretim döngüsü"],
 ];
 
+const languages = [
+  ["tr", "🇹🇷", "Türkçe"],
+  ["en", "🇬🇧", "English"],
+  ["de", "🇩🇪", "Deutsch"],
+  ["es", "🇪🇸", "Español"],
+  ["fr", "🇫🇷", "Français"],
+  ["ru", "🇷🇺", "Русский"],
+  ["ar", "🇸🇦", "العربية"],
+  ["ja", "🇯🇵", "日本語"],
+] as const;
+
+type Language = typeof languages[number][0];
+
+const localizedHero: Record<Language, { products: string; method: string; edition: string; account: string; eyebrow: string; title: [string, string, string]; lead: string; action: string; enter: string }> = {
+  tr: { products: "Ürünler", method: "SW yöntemi", edition: "SW üyeliği", account: "SW hesabı", eyebrow: "BAĞIMSIZ TEKNOLOJİ STÜDYOSU", title: ["FİKRİN", "KENDİ ÇEKİM", "ALANI OLSUN."], lead: "Yaratıcıların ve dijital toplulukların etrafında dönen karakterli ürünler tasarlıyor, geliştiriyor ve büyütüyoruz.", action: "Sinyali takip et", enter: "SW merkezine gir" },
+  en: { products: "Products", method: "SW method", edition: "Edition", account: "SW account", eyebrow: "INDEPENDENT TECHNOLOGY STUDIO", title: ["GIVE YOUR", "IDEA ITS OWN", "GRAVITY."], lead: "We design, build and grow distinctive products around creators and digital communities.", action: "Follow the signal", enter: "Enter SW center" },
+  de: { products: "Produkte", method: "SW Methode", edition: "Edition", account: "SW Konto", eyebrow: "UNABHÄNGIGES TECHNOLOGIESTUDIO", title: ["DEINE IDEE", "BRAUCHT EIGENE", "ANZIEHUNGSKRAFT."], lead: "Wir gestalten und entwickeln charaktervolle Produkte für Kreative und digitale Gemeinschaften.", action: "Signal folgen", enter: "SW Zentrale öffnen" },
+  es: { products: "Productos", method: "Método SW", edition: "Edition", account: "Cuenta SW", eyebrow: "ESTUDIO TECNOLÓGICO INDEPENDIENTE", title: ["QUE TU IDEA", "TENGA SU PROPIA", "GRAVEDAD."], lead: "Diseñamos y desarrollamos productos con carácter para creadores y comunidades digitales.", action: "Seguir la señal", enter: "Entrar al centro SW" },
+  fr: { products: "Produits", method: "Méthode SW", edition: "Edition", account: "Compte SW", eyebrow: "STUDIO TECHNOLOGIQUE INDÉPENDANT", title: ["DONNEZ À", "VOTRE IDÉE SA", "GRAVITÉ."], lead: "Nous concevons et développons des produits distinctifs pour les créateurs et les communautés numériques.", action: "Suivre le signal", enter: "Entrer dans SW" },
+  ru: { products: "Продукты", method: "Метод SW", edition: "Edition", account: "Аккаунт SW", eyebrow: "НЕЗАВИСИМАЯ ТЕХНОЛОГИЧЕСКАЯ СТУДИЯ", title: ["ПУСТЬ У", "ИДЕИ БУДЕТ", "СВОЯ ГРАВИТАЦИЯ."], lead: "Мы создаём выразительные продукты для авторов и цифровых сообществ.", action: "Следовать сигналу", enter: "Войти в центр SW" },
+  ar: { products: "المنتجات", method: "منهج SW", edition: "Edition", account: "حساب SW", eyebrow: "استوديو تقني مستقل", title: ["لِفكرتك", "جاذبيتها", "الخاصة."], lead: "نصمم ونطور منتجات مميزة للمبدعين والمجتمعات الرقمية.", action: "اتبع الإشارة", enter: "ادخل مركز SW" },
+  ja: { products: "製品", method: "SW方式", edition: "Edition", account: "SWアカウント", eyebrow: "独立系テクノロジースタジオ", title: ["アイデアに", "独自の引力を", "与えよう。"], lead: "クリエイターとデジタルコミュニティのために、個性的な製品を設計・開発します。", action: "シグナルを追う", enter: "SWセンターへ" },
+};
+
 export function BrandSite() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [language, setLanguage] = useState<Language>("tr");
   const cursorOrbitRef = useRef<HTMLDivElement>(null);
+  const ui = localizedHero[language];
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("sw-language") as Language | null;
+    if (saved && languages.some(([code]) => code === saved)) setLanguage(saved);
+  }, []);
+
+  function chooseLanguage(nextLanguage: Language) {
+    setLanguage(nextLanguage);
+    setLanguageOpen(false);
+    document.documentElement.lang = nextLanguage;
+    window.localStorage.setItem("sw-language", nextLanguage);
+  }
 
   useEffect(() => {
     const orbit = cursorOrbitRef.current;
@@ -92,58 +131,64 @@ export function BrandSite() {
   }, []);
 
   return (
-    <main className="site-shell sw-character-site">
+    <main className="site-shell sw-character-site" dir={language === "ar" ? "rtl" : "ltr"}>
       <div ref={cursorOrbitRef} className="cursor-orbit" aria-hidden="true" />
 
       <header className="topbar">
         <Link className="brand" href="#top" aria-label="SW Create ana sayfa">
           <span className="brand-mark"><Image src="/brand/swcreate-logo.png" alt="" width={42} height={42} priority /></span>
-          <span className="brand-word"><strong>SW CREATE</strong><small>INDEPENDENT DIGITAL STUDIO</small></span>
+          <span className="brand-word"><strong>SW CREATE</strong><small>BAĞIMSIZ DİJİTAL STÜDYO</small></span>
         </Link>
-        <span className="topbar-signal" aria-hidden="true"><i /> SIGNAL / IST / 2026</span>
+        <span className="topbar-signal" aria-hidden="true"><i /> SİNYAL / SW / 2026</span>
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label="Menüyü aç veya kapat">
           <span /> <span />
         </button>
         <nav className={menuOpen ? "nav-links open" : "nav-links"} aria-label="Ana menü">
-          <a href="#products" onClick={() => setMenuOpen(false)}>Ürünler</a>
-          <a href="#studio" onClick={() => setMenuOpen(false)}>SW yöntemi</a>
-          <a href="#edition" onClick={() => setMenuOpen(false)}>Edition</a>
-          <Link className="nav-account" href="/account">SW hesabı <span>↗</span></Link>
+          <a href="#products" onClick={() => setMenuOpen(false)}>{ui.products}</a>
+          <a href="#studio" onClick={() => setMenuOpen(false)}>{ui.method}</a>
+          <a href="#edition" onClick={() => setMenuOpen(false)}>{ui.edition}</a>
+          <div className="language-control">
+            <button type="button" className="language-button" onClick={() => setLanguageOpen(!languageOpen)} aria-expanded={languageOpen} aria-label="Dil seçimi">◎ <span>{language.toUpperCase()}</span></button>
+            {languageOpen && <div className="language-menu" role="menu" aria-label="Dil seçimi">
+              {languages.map(([code, flag, label]) => <button type="button" key={code} className={language === code ? "active" : ""} onClick={() => chooseLanguage(code)} role="menuitem"><span>{flag}</span>{label}</button>)}
+            </div>}
+          </div>
+          <Link className="nav-account" href="/account">{ui.account} <span>↗</span></Link>
         </nav>
       </header>
 
       <section id="top" className="hero">
         <div className="hero-grid" aria-hidden="true" />
-        <div className="hero-rail hero-rail-left" aria-hidden="true">SW/CORE_001 · 41.0082° N · 28.9784° E</div>
+        <div className="hero-rail hero-rail-left" aria-hidden="true">SW/ÇEKİRDEK_001 · BAĞIMSIZ DİJİTAL AĞ</div>
         <div className="hero-copy">
-          <p className="eyebrow"><span /> BAĞIMSIZ TEKNOLOJİ STÜDYOSU <b>／ 001</b></p>
-          <h1>FİKRİN<br />KENDİ <em>ÇEKİM</em><br />ALANI OLSUN.</h1>
-          <p className="hero-lead">Yaratıcıların ve dijital toplulukların etrafında dönen karakterli ürünler tasarlıyor, geliştiriyor ve büyütüyoruz.</p>
+          <p className="eyebrow"><span /> {ui.eyebrow} <b>／ 001</b></p>
+          <h1>{ui.title[0]}<br /><em>{ui.title[1]}</em><br />{ui.title[2]}</h1>
+          <p className="hero-lead">{ui.lead}</p>
           <div className="hero-actions">
-            <a className="button button-light" href="#products">Sinyali takip et <span>↓</span></a>
-            <Link className="text-link" href="/account">SW merkezine gir <span>↗</span></Link>
+            <a className="button button-light" href="#products">{ui.action} <span>↓</span></a>
+            <Link className="text-link" href="/account">{ui.enter} <span>↗</span></Link>
           </div>
         </div>
 
         <div className="hero-core" aria-label="SW Create ürün çekirdeği">
-          <div className="core-coordinate core-coordinate-top">SYSTEM / ONLINE</div>
+          <div className="core-coordinate core-coordinate-top">SİSTEM / AKTİF</div>
           <div className="orbit orbit-one" aria-hidden="true" />
           <div className="orbit orbit-two" aria-hidden="true" />
           <div className="orbit orbit-three" aria-hidden="true" />
           <div className="core-image">
             <SwDualCore className="core-logo-shell" />
-            <span className="core-logo-code" aria-hidden="true">SW / CORE 001</span>
+            <span className="core-logo-code" aria-hidden="true">SW / ÇEKİRDEK 001</span>
           </div>
-          <a className="signal-node node-play" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY STREAMERS <b>LIVE</b></a>
-          <a className="signal-node node-connect" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY CONNECT <b>BETA</b></a>
-          <a className="signal-node node-edition" href="#edition"><i /> SW EDITION <b>SOON</b></a>
-          <div className="core-readout"><span>CREATIVE GRAVITY</span><strong>100%</strong><small>Ideas in orbit</small></div>
+          <a className="signal-node node-play" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY STREAMERS <b>CANLI</b></a>
+          <a className="signal-node node-connect" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY CONNECT <b>DENEME</b></a>
+          <a className="signal-node node-edition" href="#edition"><i /> SW ÖZEL <b>YAKINDA</b></a>
+          <div className="core-readout"><span>YARATICI ÇEKİM</span><strong>100%</strong><small>Fikirler yörüngede</small></div>
         </div>
 
       </section>
 
       <section className="system-strip" aria-label="SW Create sistem özeti">
-        <p><span className="pulse-dot" /> SW SYSTEM INDEX</p>
+        <p><span className="pulse-dot" /> SW SİSTEM DİZİNİ</p>
         {systemStats.map(([value, label]) => (
           <div key={label}><strong>{value}</strong><span>{label}</span></div>
         ))}
@@ -153,7 +198,7 @@ export function BrandSite() {
         <div className="section-heading">
           <p className="section-number">/ 01 — YAYINLAR</p>
           <h2>HER ÜRÜN BİR<br /><span>SW SİNYALİ.</span></h2>
-          <p>Her ürün kendi problemini çözer. SW hesabı; kimliği, erişimi ve gelecekteki Edition avantajlarını ürünler arasında taşır.</p>
+          <p>Her ürün kendi problemini çözer. SW hesabı; kimliği, erişimi ve gelecekteki üyelik avantajlarını ürünler arasında taşır.</p>
         </div>
         <div className="product-list">
           {products.map((product) => (
@@ -181,7 +226,7 @@ export function BrandSite() {
         <div className="principle-grid">
           {principles.map(([number, title, copy]) => (
             <article key={title}>
-              <span>{number} / PRINCIPLE</span>
+              <span>{number} / İLKE</span>
               <div className="principle-glyph" aria-hidden="true"><b>SW</b></div>
               <h3>{title}</h3>
               <p>{copy}</p>
@@ -196,40 +241,40 @@ export function BrandSite() {
 
       <section id="edition" className="edition-section">
         <div className="edition-grid" aria-hidden="true" />
-        <div className="edition-badge">SW CREATE EDITION</div>
+        <div className="edition-badge">SW CREATE ÖZEL</div>
         <div className="edition-copy">
           <p className="section-number">/ 03 — TEK PASAPORT</p>
           <h2>BİR KİMLİK.<br />BÜTÜN <span>PRO</span> YÖRÜNGESİ.</h2>
-          <p>SW Create Edition; SW Create çatısı altındaki tüm ürünlerin Pro ayrıcalıklarını, erken erişimleri ve özel topluluk avantajlarını tek üyelikte buluşturacak.</p>
+          <p>SW Create Özel; SW Create çatısı altındaki tüm ürünlerin Pro ayrıcalıklarını, erken erişimleri ve özel topluluk avantajlarını tek üyelikte buluşturacak.</p>
         </div>
         <div className="plan-grid">
           <article className="plan-card">
-            <span>FREE / 00</span><h3>Başlangıç sinyali</h3><strong>₺0</strong>
+            <span>ÜCRETSİZ / 00</span><h3>Başlangıç sinyali</h3><strong>₺0</strong>
             <ul><li>Temel ürün özellikleri</li><li>Standart veri aralığı</li><li>Topluluk desteği</li></ul>
             <Link href="/account?mode=register">Ücretsiz hesap oluştur</Link>
           </article>
           <article className="plan-card pro">
-            <span>PRODUCT PRO / 01</span><h3>Tek üründe daha derin</h3><strong>YAKINDA</strong>
+            <span>ÜRÜN PRO / 01</span><h3>Tek üründe daha derin</h3><strong>YAKINDA</strong>
             <ul><li>Gelişmiş analiz ve kişiselleştirme</li><li>Öncelikli özellik erişimi</li><li>Daha uzun veri geçmişi</li></ul>
             <Link href="/account?plan=pro">Erken erişim listesi</Link>
           </article>
           <article className="plan-card edition">
-            <span>SW EDITION / ∞</span><h3>Ekosistemin tamamı</h3><strong>YAKINDA</strong>
+            <span>SW CREATE ÖZEL / ∞</span><h3>Ekosistemin tamamı</h3><strong>YAKINDA</strong>
             <ul><li>Tüm SW ürünlerinde Pro</li><li>Yeni ürünlere erken erişim</li><li>Discord özel rol ve hızlı destek</li></ul>
-            <Link href="/account?plan=edition">Edition listesine katıl</Link>
+            <Link href="/account?plan=edition">Özel üyelik listesine katıl</Link>
           </article>
         </div>
       </section>
 
       <section className="closing-section">
-        <span className="closing-code">SW/ENTRY_POINT</span>
+        <span className="closing-code">SW/GİRİŞ_NOKTASI</span>
         <p>Bir sonraki ürünün<br />çekim alanına gir.</p>
         <Link href="/account?mode=register">SW hesabını oluştur <span>↗</span></Link>
       </section>
 
       <footer>
         <Link className="brand footer-brand" href="#top"><Image src="/brand/swcreate-logo.png" alt="" width={36} height={36} /> SW CREATE</Link>
-        <p>İstanbul’dan, internet için.</p>
+        <p>Bağımsız üretim, dijital gelecek.</p>
         <div><Link href="/privacy">Gizlilik</Link><Link href="/terms">Koşullar</Link><a href="mailto:swcreate.info@gmail.com">İletişim</a></div>
         <span>© 2026 SW Create / SW-001</span>
       </footer>

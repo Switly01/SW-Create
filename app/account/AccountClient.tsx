@@ -35,8 +35,8 @@ type AccountClientProps = {
 };
 
 const planLabels: Record<string, string> = {
-  pro: "Product Pro",
-  edition: "SW Create Edition",
+  pro: "Ürün Pro",
+  edition: "SW Create Özel",
 };
 
 export function AccountClient({
@@ -83,7 +83,7 @@ export function AccountClient({
     return (
       <section className="account-panel">
         <div className="auth-box">
-          <p className="section-number">SW IDENTITY — GÜVENLİ GİRİŞ</p>
+          <p className="section-number">SW KİMLİK — GÜVENLİ GİRİŞ</p>
           <h1>HESABIN.<br />EKOSİSTEMİN.</h1>
           <p>SW hesabın; Play Streamers, Play Connect ve gelecekteki SW ürünlerindeki erişimlerini tek kimlik altında toplar.</p>
 
@@ -118,7 +118,7 @@ export function AccountClient({
     return (
       <section className="account-panel">
         <div className="auth-box">
-          <p className="section-number">SW IDENTITY — OTURUM AÇIK</p>
+          <p className="section-number">SW KİMLİK — OTURUM AÇIK</p>
           <h1>HESAP MERKEZİ<br />BEKLİYOR.</h1>
           <div className="account-error"><strong>Kimliğin doğrulandı.</strong><p>{accountError}</p></div>
           <a className="auth-submit identity-submit" href="/account">YENİDEN DENE <span>↻</span></a>
@@ -134,7 +134,7 @@ export function AccountClient({
     <section className="account-panel account-panel-authenticated">
       <div className="account-hub">
         <header className="account-hub-head">
-          <div><p className="section-number">SW IDENTITY — BAĞLI</p><h1>MERHABA,<br />{savedName.toLocaleUpperCase("tr-TR")}.</h1></div>
+          <div><p className="section-number">SW KİMLİK — BAĞLI</p><h1>MERHABA,<br />{savedName.toLocaleUpperCase("tr-TR")}.</h1></div>
           <span className="account-live"><i /> HESAP AKTİF</span>
         </header>
 
@@ -184,7 +184,7 @@ export function AccountClient({
           </div>
         )}
 
-        <footer className="account-hub-footer"><Link href="/">← SW Create’a dön</Link><span>SW IDENTITY / SECURE CHANNEL</span></footer>
+        <footer className="account-hub-footer"><Link href="/">← SW Create’a dön</Link><span>SW KİMLİK / GÜVENLİ KANAL</span></footer>
       </div>
     </section>
   );

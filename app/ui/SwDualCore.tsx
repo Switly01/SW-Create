@@ -13,7 +13,7 @@ export function SwDualCore({ className = "", label = "SW Create" }: SwDualCorePr
       <span className="sw-dual-core-energy sw-dual-core-energy-two" aria-hidden="true" />
       <span className="sw-dual-core-scan" aria-hidden="true" />
       <span className="sw-dual-core-chip" aria-hidden="true">SW//01</span>
-      <span className="sw-dual-core-status" aria-hidden="true">CYBER CORE</span>
+      <span className="sw-dual-core-status" aria-hidden="true">SİBER ÇEKİRDEK</span>
     </span>
   );
 }

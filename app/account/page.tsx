@@ -51,11 +51,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           <span>SW CREATE</span>
         </Link>
         <div className="account-signal" aria-hidden="true">
-          <i /> IDENTITY NETWORK / SECURE
+          <i /> KİMLİK AĞI / GÜVENLİ
         </div>
         <div className="account-quote">
           <p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p>
-          <span>SW IDENTITY / v1.0</span>
+          <span>SW KİMLİK / v1.0</span>
         </div>
       </section>
 
