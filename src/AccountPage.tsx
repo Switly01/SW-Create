@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { API_BASE, apiRequest, type SwAccount } from "./api";
+import { SwDualCore } from "../app/ui/SwDualCore";
 
 type View = "overview" | "profile" | "security";
 type Mode = "login" | "register";
@@ -218,7 +219,12 @@ export function AccountPage() {
   return (
     <main className="account-shell">
       <section className="account-art" aria-label="SW Create kimlik alanı">
-        <img src="/brand/swcreate-orbit-core.png" alt="" />
+        <div className="account-core-stage" aria-hidden="true">
+          <i className="account-core-ring account-core-ring-one" />
+          <i className="account-core-ring account-core-ring-two" />
+          <i className="account-core-ring account-core-ring-three" />
+          <SwDualCore className="account-dual-core" label="" />
+        </div>
         <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
         <div className="account-signal" aria-hidden="true"><i /> IDENTITY NETWORK / SECURE</div>
         <div className="account-quote"><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p><span>SW IDENTITY / v1.0</span></div>

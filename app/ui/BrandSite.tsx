@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { SwDualCore } from "./SwDualCore";
 
 function Link({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) {
   return <a href={href} {...props}>{children}</a>;
@@ -130,9 +131,7 @@ export function BrandSite() {
           <div className="orbit orbit-two" aria-hidden="true" />
           <div className="orbit orbit-three" aria-hidden="true" />
           <div className="core-image">
-            <span className="core-logo-shell">
-              <Image className="core-logo-image" src="/brand/swcreate-logo.png" alt="SW Create" width={260} height={260} priority />
-            </span>
+            <SwDualCore className="core-logo-shell" />
             <span className="core-logo-code" aria-hidden="true">SW / CORE 001</span>
           </div>
           <a className="signal-node node-play" href="https://pstreamers.com" target="_blank" rel="noreferrer"><i /> PLAY STREAMERS <b>LIVE</b></a>
