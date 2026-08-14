@@ -1,8 +1,20 @@
-"use client";
-
-import Image from "next/image";
-import Link from "next/link";
+import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useState } from "react";
+
+function Link({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) {
+  return <a href={href} {...props}>{children}</a>;
+}
+
+function Image({ fill, priority, style, ...props }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean }) {
+  return (
+    <img
+      {...props}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      style={fill ? { ...style, position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" } : style}
+    />
+  );
+}
 
 const products = [
   {

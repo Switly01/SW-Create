@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 :root {
   --font-space: "Trebuchet MS", "Segoe UI", sans-serif;
   --font-display: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
@@ -101,7 +99,7 @@ footer { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: ce
 /* Account and legal */
 .account-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(360px, 41%) 1fr; background: var(--paper); color: var(--ink); }
 .account-art { position: sticky; top: 0; min-height: 100vh; max-height: 100vh; overflow: hidden; background: #050507; color: var(--paper); padding: 42px; }
-.account-art > img { object-fit: cover; opacity: .88; transform: scale(1.04); }
+.account-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .88; transform: scale(1.04); }
 .account-art::before { content: ""; position: absolute; z-index: 1; inset: 0; opacity: .22; background-image: linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px); background-size: 58px 58px; mask-image: linear-gradient(to bottom, black, transparent 76%); }
 .account-art::after { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(0deg, #050507 0, rgba(5,5,7,.18) 62%), linear-gradient(90deg, transparent 40%, rgba(119,54,255,.42)); }
 .account-art .brand, .account-quote, .account-signal { position: relative; z-index: 2; }
@@ -140,6 +138,7 @@ footer { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: ce
 .account-live { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border: 1px solid #9f9889; border-radius: 99px; font-size: 9px; font-weight: 900; letter-spacing: .1em; white-space: nowrap; }.account-live i { width: 7px; height: 7px; border-radius: 50%; background: #28b76a; box-shadow: 0 0 12px #28b76a; }
 .account-nav { display: grid; grid-template-columns: repeat(3, 1fr); margin: 34px 0 0; border: 2px solid var(--ink); }
 .account-nav button { display: flex; align-items: center; gap: 10px; padding: 15px; border: 0; border-right: 1px solid var(--ink); background: transparent; color: var(--ink); font-weight: 800; cursor: pointer; }.account-nav button:last-child { border-right: 0; }.account-nav button span { color: #817a6d; font-size: 10px; }.account-nav button.active { background: var(--ink); color: var(--paper); }.account-nav button.active span { color: var(--acid); }
+.account-nav button:disabled { cursor: default; opacity: 1; }
 .account-view { min-height: 430px; padding: 30px 0; }
 .account-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .account-summary-grid article { min-width: 0; padding: 22px; border: 1px solid #9f9889; background: rgba(255,255,255,.38); }

@@ -1,0 +1,1 @@
+AUTH_PEPPER=generate-a-long-random-secret-and-store-it-only-as-a-worker-secret

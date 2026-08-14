@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "swcreate-identity-api",
+  "main": "cloudflare-worker.js",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "api.swcreate.com", "custom_domain": true }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "swcreate-identity",
+      "database_id": "REPLACE_AFTER_D1_CREATE",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": { "enabled": true }
+}
