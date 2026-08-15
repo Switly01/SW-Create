@@ -6,9 +6,14 @@ type View = "overview" | "profile" | "security";
 type Mode = "login" | "register";
 
 const planLabels: Record<string, string> = {
-  pro: "Product Pro",
-  edition: "SW Create Edition",
+  pro: "SW Create Pro Edition",
+  edition: "SW Create Product Pro Edition",
 };
+
+function returnToSwCreate(event: { preventDefault: () => void }) {
+  event.preventDefault();
+  window.location.replace("/");
+}
 
 function AccountPanel() {
   const params = new URLSearchParams(window.location.search);
@@ -19,7 +24,18 @@ function AccountPanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [status, setStatus] = useState<{ type: "error" | "success"; text: string } | null>(null);
+
+  function changeMode(nextMode: Mode) {
+    setMode(nextMode);
+    setStatus(null);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.pathname = "/account/";
+    if (nextMode === "register") nextUrl.searchParams.set("mode", "register");
+    else nextUrl.searchParams.delete("mode");
+    window.history.replaceState({}, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+  }
 
   useEffect(() => {
     const oauthResult = new URLSearchParams(window.location.search);
@@ -118,8 +134,8 @@ function AccountPanel() {
           )}
 
           <div className="auth-tabs" role="tablist" aria-label="Hesap işlemi">
-            <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setStatus(null); }}>Giriş yap</button>
-            <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "active" : ""} onClick={() => { setMode("register"); setStatus(null); }}>Hesap oluştur</button>
+            <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => changeMode("login")}>Giriş yap</button>
+            <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "active" : ""} onClick={() => changeMode("register")}>Hesap oluştur</button>
           </div>
 
           <div className="social-auth" aria-label="Sosyal hesapla devam et">
@@ -137,17 +153,17 @@ function AccountPanel() {
           <form className="auth-form profile-form" onSubmit={submit}>
             {mode === "register" && <label>GÖRÜNEN AD<input name="displayName" autoComplete="name" minLength={2} maxLength={48} required /></label>}
             <label>E-POSTA<input name="email" type="email" autoComplete="email" required /></label>
-            <label>ŞİFRE<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={10} maxLength={200} required /></label>
+            <label>ŞİFRE<span className="password-field"><input name="password" type={passwordVisible ? "text" : "password"} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={10} maxLength={200} required /><button type="button" className={passwordVisible ? "password-toggle visible" : "password-toggle"} onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? "Şifreyi gizle" : "Şifreyi göster"} aria-pressed={passwordVisible}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 12s3.4-5 9.3-5 9.3 5 9.3 5-3.4 5-9.3 5-9.3-5-9.3-5Z"/><circle cx="12" cy="12" r="2.6"/></svg></button></span></label>
             <button className="auth-submit" disabled={busy}>{busy ? "İŞLENİYOR…" : mode === "login" ? "SW HESABINA GİR ↗" : "SW HESABINI OLUŞTUR ↗"}</button>
           </form>
           <div className={`auth-status ${status?.type || ""}`} role="status">{status?.text}</div>
           <ul className="identity-benefits">
             <li><i /> Parolan yalnızca güçlü ve tuzlanmış bir özet olarak saklanır.</li>
             <li><i /> Ürün yetkilerin tek SW hesabında kalır.</li>
-            <li><i /> ChatGPT veya başka bir üçüncü taraf hesabı gerekmez.</li>
+            <li><i /> Başka bir platform hesabı zorunlu değildir.</li>
           </ul>
           <p className="identity-legal">Devam ederek <a href="/terms/">Koşullar</a> ve <a href="/privacy/">Gizlilik Politikası</a> metinlerini kabul etmiş olursun.</p>
-          <a className="account-back" href="/">← SW Create’a dön</a>
+          <a className="account-back" href="/" onClick={returnToSwCreate}>← SW Create’a dön</a>
         </div>
       </section>
     );
@@ -180,7 +196,7 @@ function AccountPanel() {
               <div className="account-section-title"><div><span>/ ÜRÜN ERİŞİMLERİ</span><h2>SW yörüngendeki ürünler</h2></div><small>{account.entitlements.length} AKTİF</small></div>
               <div className="entitlement-list">
                 {account.entitlements.map((item, index) => (
-                  <div className="entitlement" key={item.slug}><span className="entitlement-index">0{index + 1}</span><div><strong>{item.product}</strong><small>{item.slug === "play-connect" ? "Tarayıcı veri köprüsü" : "Yayıncı kontrol sistemi"}</small></div><b>{item.tier.toUpperCase()}</b></div>
+                  <div className="entitlement" key={item.slug}><span className="entitlement-index">0{index + 1}</span><div><strong>{item.product}</strong><small>{item.slug === "play-connect" ? "Tarayıcı veri köprüsü" : item.slug === "sw-create" ? "Merkezi SW kimliği" : "Yayıncı kontrol sistemi"}</small></div><b>{item.tier.toUpperCase()}</b></div>
                 ))}
               </div>
             </section>
@@ -209,7 +225,7 @@ function AccountPanel() {
           </div>
         )}
 
-        <footer className="account-hub-footer"><a href="/">← SW Create’a dön</a><span>SW IDENTITY / SECURE CHANNEL</span></footer>
+        <footer className="account-hub-footer"><a href="/" onClick={returnToSwCreate}>← SW Create’a dön</a><span>SW IDENTITY / SECURE CHANNEL</span></footer>
       </div>
     </section>
   );
@@ -225,7 +241,7 @@ export function AccountPage() {
           <i className="account-core-ring account-core-ring-three" />
           <SwDualCore className="account-dual-core" label="" />
         </div>
-        <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
+        <a className="brand" href="/" onClick={returnToSwCreate}><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
         <div className="account-signal" aria-hidden="true"><i /> IDENTITY NETWORK / SECURE</div>
         <div className="account-quote"><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p><span>SW IDENTITY / v1.0</span></div>
       </section>

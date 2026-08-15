@@ -50,3 +50,5 @@ INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at)
 VALUES ('play-streamers', 'Play Streamers', 'play-streamers', 'active', unixepoch());
 INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at)
 VALUES ('play-connect', 'Play Connect', 'play-connect', 'active', unixepoch());
+INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at)
+VALUES ('sw-create', 'SW Create', 'sw-create', 'active', unixepoch());

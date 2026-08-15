@@ -10,6 +10,8 @@ const KICK_API = "https://api.kick.com/public/v1";
 const ALLOWED_ORIGINS = new Set([
   "https://swcreate.com",
   "https://www.swcreate.com",
+  "https://pstreamers.com",
+  "https://www.pstreamers.com",
   "https://switly01.github.io",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -90,6 +92,25 @@ function corsHeaders(request) {
     headers.set("access-control-allow-headers", "Content-Type");
   }
   return headers;
+}
+
+function activityCorsHeaders(request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = corsHeaders(request);
+  if (origin.startsWith("chrome-extension://") || origin.startsWith("moz-extension://")) {
+    headers.set("access-control-allow-origin", origin);
+    headers.set("access-control-allow-methods", "POST,OPTIONS");
+    headers.set("access-control-allow-headers", "Content-Type");
+  }
+  return headers;
+}
+
+function validActivityOrigin(request, product) {
+  const origin = request.headers.get("origin") || "";
+  if (product === "sw-create") return origin === "https://swcreate.com" || origin === "https://www.swcreate.com" || origin === "http://localhost:5173" || origin === "http://127.0.0.1:5173";
+  if (product === "play-streamers") return origin === "https://pstreamers.com" || origin === "https://www.pstreamers.com";
+  if (product === "play-connect") return !origin || origin.startsWith("chrome-extension://") || origin.startsWith("moz-extension://");
+  return false;
 }
 
 function json(request, body, status = 200, cookie) {
@@ -185,17 +206,42 @@ async function accountPayload(env, user) {
 async function publicStats(env, request) {
   const now = Math.floor(Date.now() / 1000);
   const activeSince = now - (15 * 60);
-  const [accounts, active] = await Promise.all([
+  const [accounts, activeSessions, activeActivity, products] = await Promise.all([
     env.DB.prepare("SELECT COUNT(*) AS total FROM sw_users").first(),
     env.DB.prepare("SELECT COUNT(DISTINCT user_id) AS total FROM sw_sessions WHERE expires_at > ? AND last_seen_at >= ?")
       .bind(now, activeSince).first(),
+    env.DB.prepare("SELECT COUNT(DISTINCT visitor_hash) AS total FROM sw_product_activity WHERE last_seen_at >= ?")
+      .bind(activeSince).first().catch(() => ({ total: 0 })),
+    env.DB.prepare("SELECT COUNT(*) AS total FROM sw_products WHERE status = 'active'").first(),
   ]);
   const headers = corsHeaders(request);
   headers.set("cache-control", "public, max-age=30, s-maxage=30");
   return new Response(JSON.stringify({
     registeredAccounts: Number(accounts?.total || 0),
-    activeUsers: Number(active?.total || 0),
+    activeUsers: Math.max(Number(activeSessions?.total || 0), Number(activeActivity?.total || 0)),
+    activeProducts: Number(products?.total || 0),
   }), { status: 200, headers });
+}
+
+async function recordProductActivity(env, request) {
+  await rateLimit(env, request, "sw-product-activity", 180, 15 * 60);
+  const body = await parseBody(request);
+  const product = String(body.product || "").trim().toLowerCase();
+  const visitor = String(body.visitor || "").trim();
+  if (!validActivityOrigin(request, product)) return json(request, { error: "Geçersiz ürün kaynağı." }, 403);
+  if (visitor.length < 16 || visitor.length > 160) return json(request, { error: "Geçersiz etkinlik kimliği." }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  const visitorHash = await sha256(`${product}:${visitor}:${env.AUTH_PEPPER}`);
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO sw_product_activity (visitor_hash, product_id, first_seen_at, last_seen_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(visitor_hash, product_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+    `).bind(visitorHash, product, now, now),
+    env.DB.prepare("DELETE FROM sw_product_activity WHERE last_seen_at < ?").bind(now - (7 * 24 * 60 * 60)),
+  ]);
+  const headers = activityCorsHeaders(request);
+  return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
 }
 
 async function register(env, request) {
@@ -218,8 +264,10 @@ async function register(env, request) {
     env.DB.prepare("INSERT INTO sw_users (id, email, display_name, password_hash, password_salt, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(userId, email, displayName, digest, salt, now, now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('play-streamers', 'Play Streamers', 'play-streamers', 'active', ?)").bind(now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('play-connect', 'Play Connect', 'play-connect', 'active', ?)").bind(now),
+    env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('sw-create', 'SW Create', 'sw-create', 'active', ?)").bind(now),
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-streamers', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-connect', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
+    env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
   ]);
   const token = await createSession(env, userId);
   return json(request, await accountPayload(env, { id: userId, email, displayName, createdAt: now }), 201, sessionCookie(token));
@@ -350,8 +398,10 @@ async function grantDefaultProducts(env, userId, source, now) {
   await env.DB.batch([
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('play-streamers', 'Play Streamers', 'play-streamers', 'active', ?)").bind(now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('play-connect', 'Play Connect', 'play-connect', 'active', ?)").bind(now),
+    env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('sw-create', 'SW Create', 'sw-create', 'active', ?)").bind(now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-streamers', 'free', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-connect', 'free', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
+    env.DB.prepare("INSERT OR IGNORE INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'free', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
   ]);
 }
 
@@ -412,15 +462,19 @@ async function finishOAuth(env, request, provider) {
 export default {
   async fetch(request, env) {
     if (!env.DB || !env.AUTH_PEPPER) return json(request, { error: "SW Identity yapılandırması tamamlanmamış." }, 503);
+    const url = new URL(request.url);
     if (request.method === "OPTIONS") {
+      if (url.pathname === "/api/activity/pulse") {
+        return new Response(null, { status: 204, headers: activityCorsHeaders(request) });
+      }
       const origin = request.headers.get("origin");
       return new Response(null, { status: origin && ALLOWED_ORIGINS.has(origin) ? 204 : 403, headers: corsHeaders(request) });
     }
 
-    const url = new URL(request.url);
     try {
       if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity" });
       if (request.method === "GET" && url.pathname === "/api/stats") return await publicStats(env, request);
+      if (request.method === "POST" && url.pathname === "/api/activity/pulse") return await recordProductActivity(env, request);
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/start") return await beginOAuth(env, request, "google");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/start") return await beginOAuth(env, request, "kick");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/callback") return await finishOAuth(env, request, "google");
