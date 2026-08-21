@@ -33,5 +33,6 @@ declare module "cloudflare:workers" {
     DB: D1Database;
     AUTH_PEPPER?: string;
     TURNSTILE_SECRET_KEY?: string;
+    TOTP_ENCRYPTION_KEY?: string;
   };
 }

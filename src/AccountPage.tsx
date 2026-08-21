@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState, type Ref } from "react";
-import { API_BASE, apiRequest, type SwAccount } from "./api";
+import { API_BASE, apiRequest, type SwAccount, type SwTwoFactorChallenge } from "./api";
 import { forgetRememberedSwAccount, readRememberedSwAccounts, rememberSwAccount } from "./rememberedAccounts";
 import { SW_IDENTITY_VERSION, TURNSTILE_SITE_KEY } from "./security";
 import { TurnstileChallenge } from "./TurnstileChallenge";
@@ -12,7 +12,7 @@ function GoogleMark() {
 }
 
 function KickMark() {
-  return <span className="kick-letter" aria-hidden="true">K</span>;
+  return <img className="kick-k-mark" src="/brand/kick-k.svg" alt="" aria-hidden="true" />;
 }
 
 function PasswordField({ name, label, current = false, inputRef }: { name: string; label: string; current?: boolean; inputRef?: Ref<HTMLInputElement> }) {
@@ -39,15 +39,24 @@ function AccountPanel() {
   const [rememberedAccounts, setRememberedAccounts] = useState(readRememberedSwAccounts);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileReset, setTurnstileReset] = useState(0);
+  const [twoFactorChallenge, setTwoFactorChallenge] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [status, setStatus] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const identityInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const formStartedAtRef = useRef(Date.now());
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const oauth = new URLSearchParams(window.location.search);
     if (oauth.get("oauth") === "success") {
       window.location.replace("/home/");
+      return;
+    }
+    const challengeId = String(oauth.get("challenge_id") || "").trim();
+    if (oauth.get("two_factor_required") === "1" && challengeId) {
+      setTwoFactorChallenge(challengeId);
+      setChecking(false);
       return;
     }
     const oauthError = oauth.get("oauth_error");
@@ -104,7 +113,14 @@ function AccountPanel() {
   function chooseRememberedAccount(username: string) {
     if (identityInputRef.current) identityInputRef.current.value = username;
     setNativeInfoOpen(false);
-    window.requestAnimationFrame(() => passwordInputRef.current?.focus());
+    window.requestAnimationFrame(() => {
+      const passwordReady = Boolean(passwordInputRef.current?.value);
+      if (passwordReady) formRef.current?.requestSubmit();
+      else {
+        passwordInputRef.current?.focus();
+        setStatus({ type: "success", text: `${username} seçildi. Şifre yöneticin parolayı doldurduğunda giriş tamamlanır.` });
+      }
+    });
   }
 
   function useAnotherAccount() {
@@ -131,7 +147,7 @@ function AccountPanel() {
       return;
     }
     try {
-      const account = await apiRequest<SwAccount>(`/api/auth/${mode}`, {
+      const result = await apiRequest<SwAccount | SwTwoFactorChallenge>(`/api/auth/${mode}`, {
         method: "POST",
         body: JSON.stringify({
           identity: String(form.get("identity") || ""),
@@ -145,11 +161,35 @@ function AccountPanel() {
           turnstileToken,
         }),
       });
+      if ("twoFactorRequired" in result) {
+        setTwoFactorChallenge(result.challengeId);
+        setTwoFactorCode("");
+        return;
+      }
+      const account = result;
       rememberSwAccount(account);
       window.location.replace("/home/");
     } catch (error) {
       setStatus({ type: "error", text: error instanceof Error ? error.message : "İşlem tamamlanamadı." });
       setTurnstileReset((value) => value + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyTwoFactor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setStatus(null);
+    try {
+      const account = await apiRequest<SwAccount>("/api/auth/two-factor/verify", {
+        method: "POST",
+        body: JSON.stringify({ challengeId: twoFactorChallenge, code: twoFactorCode, remember }),
+      });
+      rememberSwAccount(account);
+      window.location.replace("/home/");
+    } catch (error) {
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Doğrulama tamamlanamadı." });
     } finally {
       setBusy(false);
     }
@@ -169,7 +209,7 @@ function AccountPanel() {
           <button type="button" role="tab" aria-selected={mode === "register"} className={mode === "register" ? "active" : ""} onClick={() => changeMode("register")}>Hesap oluştur</button>
         </div>
 
-        <form className="auth-form profile-form" onSubmit={submit}>
+        <form ref={formRef} className="auth-form profile-form" onSubmit={submit}>
           <label className="identity-honeypot" aria-hidden="true">ŞİRKET SİTESİ<input name="website" autoComplete="off" tabIndex={-1} /></label>
           {mode === "login" ? (
             <label>E-POSTA YA DA KULLANICI ADI<input ref={identityInputRef} name="identity" autoComplete="username" required /></label>
@@ -223,6 +263,9 @@ function AccountPanel() {
           </section>
         </div>}
       </div>
+      {twoFactorChallenge && <div className="identity-2fa-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-2fa-title">
+        <section><span>SW IDENTITY v{SW_IDENTITY_VERSION}</span><h2 id="identity-2fa-title">Girişini doğrula</h2><p>Authenticator uygulamandaki 6 haneli kodu veya kurtarma kodlarından birini gir.</p><form onSubmit={verifyTwoFactor}><input value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value)} autoComplete="one-time-code" placeholder="123456 veya XXXX-XXXX" minLength={6} maxLength={9} required autoFocus /><button disabled={busy}>{busy ? "DOĞRULANIYOR…" : "GİRİŞİ TAMAMLA"}</button></form><button type="button" className="identity-2fa-cancel" onClick={() => setTwoFactorChallenge("")}>İptal et</button></section>
+      </div>}
     </section>
   );
 }
@@ -234,7 +277,7 @@ export function AccountPage() {
         <div className="account-core-stage" aria-hidden="true"><SwDualCore className="account-dual-core" label="" /></div>
         <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
         <div className="account-signal" aria-hidden="true"><i /> IDENTITY NETWORK / SECURE</div>
-        <div className="account-quote"><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p><span>SW IDENTITY</span></div>
+        <div className="account-quote"><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p><span>SW IDENTITY <b>v{SW_IDENTITY_VERSION}</b> · DATA FLOW PROTECTED</span></div>
       </section>
       <AccountPanel />
     </main>

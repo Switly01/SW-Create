@@ -14,14 +14,27 @@ export type SwAccount = {
     slug: string;
     tier: string;
   }>;
+  security: {
+    identityVersion: string;
+    twoFactorEnabled: boolean;
+    dataFlowProtection: "verified";
+  };
+};
+
+export type SwTwoFactorChallenge = {
+  twoFactorRequired: true;
+  challengeId: string;
+  expiresAt: string;
 };
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const flowId = crypto.randomUUID();
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       accept: "application/json",
+      "x-sw-flow-id": flowId,
       ...(init.body ? { "content-type": "application/json" } : {}),
       ...init.headers,
     },

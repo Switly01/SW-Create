@@ -23,8 +23,9 @@ npm run dev
 
 ## Güvenlik
 
-Güvenlik katmanı `SW Identity v1.0.0` adını taşır. `AUTH_PEPPER` ve isteğe bağlı
-`TURNSTILE_SECRET_KEY` yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
+Güvenlik katmanı `SW Identity v1.1.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
+`TURNSTILE_SECRET_KEY` ve iki aşamalı doğrulama için `TOTP_ENCRYPTION_KEY`
+yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
 ya da GitHub'a eklenmemelidir. Turnstile'ın public site key'i GitHub Actions
 variable olarak `VITE_TURNSTILE_SITE_KEY` adıyla verilir. Ayrıntılar
 `SW_IDENTITY_SECURITY.md` dosyasındadır.
@@ -33,6 +34,8 @@ variable olarak `VITE_TURNSTILE_SITE_KEY` adıyla verilir. Ayrıntılar
 
 İlk D1 şeması `drizzle/0000_swcreate_identity.sql` dosyasındadır. Üretimde bir
 kez uygulanır. Cloudflare Worker D1 bağlamasını `DB` adıyla kullanır.
+SW Identity 1.1 veri akışı ve TOTP tabloları `migrations/0006_sw_identity_v1_1.sql`
+migration'ıyla eklenir.
 
 ## Alan adı
 
