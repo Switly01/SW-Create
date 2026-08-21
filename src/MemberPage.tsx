@@ -1,10 +1,17 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiRequest, type SwAccount } from "./api";
 import { rememberSwAccount } from "./rememberedAccounts";
 import { SW_IDENTITY_VERSION } from "./security";
 
 type View = "profile" | "security";
 type TotpSetup = { setupId: string; secret: string; formattedSecret: string; otpauthUri: string; expiresAt: string };
+type QrMethod = "qr" | "key";
+
+declare const qrcode: ((typeNumber: number, errorCorrectionLevel: "H") => {
+  addData(data: string): void;
+  make(): void;
+  createDataURL(cellSize: number, margin: number): string;
+}) | undefined;
 
 export function MemberPage() {
   const [account, setAccount] = useState<SwAccount | null>(null);
@@ -18,6 +25,19 @@ export function MemberPage() {
   const [totpSetup, setTotpSetup] = useState<TotpSetup | null>(null);
   const [totpCode, setTotpCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [qrMethod, setQrMethod] = useState<QrMethod>("qr");
+
+  const totpQrDataUrl = useMemo(() => {
+    if (!totpSetup || typeof qrcode !== "function") return "";
+    try {
+      const qr = qrcode(0, "H");
+      qr.addData(totpSetup.otpauthUri);
+      qr.make();
+      return qr.createDataURL(6, 4);
+    } catch {
+      return "";
+    }
+  }, [totpSetup]);
 
   useEffect(() => {
     apiRequest<SwAccount>("/api/account")
@@ -47,6 +67,7 @@ export function MemberPage() {
   async function startTwoFactor() {
     setBusy(true); setStatus(""); setRecoveryCodes([]);
     try {
+      setQrMethod("qr");
       setTotpSetup(await apiRequest<TotpSetup>("/api/account/totp/setup", { method: "POST", body: "{}" }));
     } catch (error) { setStatus(error instanceof Error ? error.message : "Kurulum başlatılamadı."); }
     finally { setBusy(false); }
@@ -85,7 +106,21 @@ export function MemberPage() {
           {view === "profile" && <form className="member-form" onSubmit={saveProfile}><h2>Profil bilgilerin</h2><label>KULLANICI ADI<input value={username} onChange={(event) => setUsername(event.target.value)} minLength={3} maxLength={32} pattern="[A-Za-z0-9._-]+" required /></label>{account.user.email && <label>E-POSTA<input value={account.user.email} disabled /></label>}<button disabled={busy}>Değişiklikleri kaydet</button>{status && <p>{status}</p>}</form>}
           {view === "security" && <div className="member-security"><p className="member-security-version">SW IDENTITY v{SW_IDENTITY_VERSION}</p><h2>Oturum, veri ve kimlik</h2><article><span>SW</span><div><strong>Güvenli SW oturumu</strong><p>Oturumun yalnızca sunucunun okuyabildiği HttpOnly çerezle korunur. “Beni hatırla” seçildiğinde bu cihaz 30 gün açık kalır.</p></div></article><article><span>01</span><div><strong>Doğrulanmış veri akışı</strong><p>Her API isteği ayrı SW Flow kimliği taşır; hassas değerler güvenlik günlüğüne yazılmaz ve trafik yalnız izin verilen kaynaklardan kabul edilir.</p></div></article><article><span>02</span><div><strong>Bot ve deneme koruması</strong><p>Şüpheli form davranışları, tekrar denemeleri ve otomatik istekler SW Identity güvenlik katmanında sınırlandırılır.</p></div></article><article><span>03</span><div><strong>İki aşamalı doğrulama</strong><p>{account.security.twoFactorEnabled ? "Authenticator koruması açık. Her yeni girişte tek kullanımlık kod istenir." : "Authenticator uygulamasıyla hesabına ikinci bir güvenlik katmanı ekle."}</p></div></article>
             {!account.security.twoFactorEnabled && !totpSetup && <button onClick={startTwoFactor} disabled={busy}>İki aşamalı doğrulamayı kur</button>}
-            {totpSetup && <section className="totp-setup"><span>1. Authenticator uygulamanda hesabı aç</span><a href={totpSetup.otpauthUri}>Authenticator’a ekle</a><code>{totpSetup.formattedSecret}</code><span>2. Uygulamanın ürettiği 6 haneli kodu doğrula</span><form onSubmit={confirmTwoFactor}><input value={totpCode} onChange={(event) => setTotpCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={6} placeholder="123456" required /><button disabled={busy}>Doğrula ve aç</button></form></section>}
+            {totpSetup && <section className="totp-setup">
+              <span>1. Authenticator uygulamana SW hesabını ekle</span>
+              <div className="totp-methods" role="tablist" aria-label="Authenticator kurulum yöntemi">
+                <button type="button" role="tab" aria-selected={qrMethod === "qr"} className={qrMethod === "qr" ? "active" : ""} onClick={() => setQrMethod("qr")}>QR kodu tara</button>
+                <button type="button" role="tab" aria-selected={qrMethod === "key"} className={qrMethod === "key" ? "active" : ""} onClick={() => setQrMethod("key")}>Kurulum anahtarı</button>
+              </div>
+              {qrMethod === "qr" && <div className="totp-qr-panel">
+                {totpQrDataUrl ? <div className="totp-qr-code"><img src={totpQrDataUrl} alt="SW Create Authenticator QR kodu" /><span aria-hidden="true"><img src="/brand/swcreate-logo.png" alt="" /></span></div> : <p>QR sistemi yüklenemedi. Kurulum anahtarı seçeneğini kullanabilirsin.</p>}
+                <strong>Authenticator uygulamanda “QR kodu tara” seçeneğini aç.</strong>
+                <small>QR yalnızca bu tarayıcıda oluşturulur; hesap anahtarın başka bir servise gönderilmez.</small>
+              </div>}
+              {qrMethod === "key" && <div className="totp-key-panel"><p>Uygulamana aşağıdaki kurulum anahtarını elle gir.</p><code>{totpSetup.formattedSecret}</code><a href={totpSetup.otpauthUri}>Authenticator uygulamasında aç</a></div>}
+              <span>2. Uygulamanın ürettiği 6 haneli kodu doğrula</span>
+              <form onSubmit={confirmTwoFactor}><input value={totpCode} onChange={(event) => setTotpCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={6} placeholder="123456" required /><button disabled={busy}>Doğrula ve aç</button></form>
+            </section>}
             {account.security.twoFactorEnabled && <form className="totp-disable" onSubmit={disableTwoFactor}><label>İki aşamalı doğrulamayı kapatmak için kod<input value={totpCode} onChange={(event) => setTotpCode(event.target.value)} autoComplete="one-time-code" placeholder="123456 veya XXXX-XXXX" required /></label><button disabled={busy}>Korumayı kapat</button></form>}
             {recoveryCodes.length > 0 && <section className="totp-recovery"><strong>Kurtarma kodların</strong><p>Her kod yalnızca bir kez kullanılabilir. Bu ekran kapandıktan sonra tekrar gösterilmez.</p><div>{recoveryCodes.map((code) => <code key={code}>{code}</code>)}</div></section>}
             {status && <p className="member-security-status">{status}</p>}<button onClick={logout} disabled={busy}>Bu cihazdan çıkış yap</button></div>}

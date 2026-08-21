@@ -23,7 +23,7 @@ npm run dev
 
 ## Güvenlik
 
-Güvenlik katmanı `SW Identity v1.2.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
+Güvenlik katmanı `SW Identity v1.2.1` adını taşır. `AUTH_PEPPER`, isteğe bağlı
 `TURNSTILE_SECRET_KEY` ve iki aşamalı doğrulama için `TOTP_ENCRYPTION_KEY`
 yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
 ya da GitHub'a eklenmemelidir. Turnstile'ın public site key'i GitHub Actions

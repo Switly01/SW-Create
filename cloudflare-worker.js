@@ -1,7 +1,7 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.2.0";
+const SW_IDENTITY_VERSION = "1.2.1";
 const SW_IDENTITY_RELEASED_AT = 1787263200;
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
