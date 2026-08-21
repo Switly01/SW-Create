@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { API_BASE } from "../../src/api";
 import { SwDualCore } from "./SwDualCore";
 
 function Link({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) {
@@ -41,11 +42,22 @@ const products = [
     name: "Play Connect",
     kind: "Tarayıcı veri köprüsü",
     copy: "Bağış platformlarını tek bir güvenli veri katmanında buluşturan ücretsiz tarayıcı bağlantısı.",
-    state: "DENEME",
+    state: "CANLI",
     color: "coral",
     href: "https://pstreamers.com",
   },
 ];
+
+const PLAY_CONNECT_STORES = {
+  chromium: "https://chromewebstore.google.com/detail/play-connect/mpebmfjcdkflgiloecjonopfknojdaip",
+  firefox: "https://addons.mozilla.org/en-US/firefox/addon/play-connect/",
+} as const;
+
+function playConnectStoreForBrowser() {
+  const userAgent = window.navigator.userAgent;
+  if (/Firefox|FxiOS/i.test(userAgent)) return PLAY_CONNECT_STORES.firefox;
+  return PLAY_CONNECT_STORES.chromium;
+}
 
 const principles = [
   ["Bir hesap", "Her SW Create ürününde aynı kimlik, tek merkez ve taşınabilir erişim."],
@@ -89,6 +101,7 @@ export function BrandSite() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("tr");
+  const [playConnectStore] = useState(playConnectStoreForBrowser);
   const [systemStats, setSystemStats] = useState({ activeUsers: "—", registeredAccounts: "—", activeProducts: "—" });
   const cursorOrbitRef = useRef<HTMLDivElement>(null);
   const ui = localizedHero[language];
@@ -101,10 +114,23 @@ export function BrandSite() {
 
   useEffect(() => {
     const controller = new AbortController();
-    let timer = 0;
+    fetch(`${API_BASE}/api/account`, { credentials: "include", cache: "no-store", signal: controller.signal })
+      .then((response) => {
+        if (response.ok) window.location.replace("/home/");
+      })
+      .catch((error) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("SW oturumu kontrol edilemedi.");
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let statsTimer = 0;
+    let pulseTimer = 0;
     const pulseActivity = async () => {
       try {
-        await fetch("https://api.swcreate.com/api/activity/pulse", {
+        await fetch(`${API_BASE}/api/activity/pulse`, {
           method: "POST",
           credentials: "omit",
           headers: { "content-type": "application/json" },
@@ -117,7 +143,7 @@ export function BrandSite() {
     };
     const loadStats = async () => {
       try {
-        const response = await fetch("https://api.swcreate.com/api/stats", { signal: controller.signal, credentials: "omit" });
+        const response = await fetch(`${API_BASE}/api/stats`, { signal: controller.signal, credentials: "omit", cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json() as { activeUsers?: number; registeredAccounts?: number; activeProducts?: number };
         setSystemStats({
@@ -129,11 +155,23 @@ export function BrandSite() {
         if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("SW sistem verileri alınamadı.");
       }
     };
-    void pulseActivity().then(loadStats);
-    timer = window.setInterval(() => { void pulseActivity().then(loadStats); }, 60_000);
+    const refreshVisibleStats = () => {
+      if (!document.hidden) void loadStats();
+    };
+    void pulseActivity();
+    void loadStats();
+    statsTimer = window.setInterval(refreshVisibleStats, 15_000);
+    pulseTimer = window.setInterval(() => {
+      if (!document.hidden) void pulseActivity();
+    }, 45_000);
+    window.addEventListener("focus", refreshVisibleStats);
+    document.addEventListener("visibilitychange", refreshVisibleStats);
     return () => {
       controller.abort();
-      window.clearInterval(timer);
+      window.clearInterval(statsTimer);
+      window.clearInterval(pulseTimer);
+      window.removeEventListener("focus", refreshVisibleStats);
+      document.removeEventListener("visibilitychange", refreshVisibleStats);
     };
   }, []);
 
@@ -213,7 +251,7 @@ export function BrandSite() {
         </div>
       </section>
 
-      <section className="system-strip" aria-label="SW Create sistem özeti">
+      <section className="system-strip" aria-label="SW Create sistem özeti" aria-live="polite">
         <p><span className="pulse-dot" /> SW SİSTEM DİZİNİ</p>
         <div><strong>{systemStats.activeUsers}</strong><span>SW ürünlerini aktif kullanan</span></div>
         <div><strong>{systemStats.registeredAccounts}</strong><span>Kayıtlı SW hesabı</span></div>
@@ -231,7 +269,7 @@ export function BrandSite() {
             <div className="product-group-title"><i /> <h3>{group === "site" ? "Siteler" : "Eklentiler"}</h3></div>
             <div className="product-list">
               {products.filter((product) => product.group === group).map((product) => (
-                <a className={`product-card ${product.color} slide-link`} href={product.href} key={product.name} target="_blank" rel="noreferrer">
+                <a className={`product-card ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
                   <div className="product-main"><p>{product.kind}</p><h3>{product.name}</h3><span>{product.copy}</span></div>
                   <div className="product-side"><span className="state">{product.state}</span><span className="arrow">↗</span></div>
                 </a>
@@ -265,7 +303,7 @@ export function BrandSite() {
       <footer className="site-footer">
         <div className="footer-identity"><Link className="brand footer-brand" href="#top" aria-label="Sayfanın başına dön"><Image src="/brand/swcreate-logo.png" alt="" width={52} height={52} /></Link><p>Bağımsız fikirler için karakterli dijital ürünler.</p></div>
         <div className="footer-links"><strong>SW CREATE</strong><Link href="#products">Ürünler</Link><Link href="#studio">SW yönetimi</Link><Link href="#edition">SW Create Edition</Link></div>
-        <div className="footer-links"><strong>GÜVEN</strong><Link href="/privacy">Gizlilik</Link><Link href="/terms">Koşullar</Link><a href="mailto:swcreate.info@gmail.com">İletişim</a></div>
+        <div className="footer-links"><strong>GÜVEN</strong><Link href="/privacy">Gizlilik</Link><Link href="/terms">Koşullar</Link><a href="mailto:swcreate.info@gmail.com">swcreate.info@gmail.com</a></div>
         <div className="footer-privacy"><span className="pulse-dot" /><strong>GİZLİLİK ÖNCELİKLİ</strong><p>Kimlik ve erişim verilerin yalnızca seçtiğin SW ürünlerini çalıştırmak için kullanılır.</p></div>
         <span className="footer-copyright">© 2026 SW Create · Bağımsız dijital stüdyo</span>
       </footer>

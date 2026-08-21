@@ -1,5 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, type Ref } from "react";
 import { API_BASE, apiRequest, type SwAccount } from "./api";
+import { forgetRememberedSwAccount, readRememberedSwAccounts, rememberSwAccount } from "./rememberedAccounts";
+import { SW_IDENTITY_VERSION, TURNSTILE_SITE_KEY } from "./security";
+import { TurnstileChallenge } from "./TurnstileChallenge";
 import { SwDualCore } from "../app/ui/SwDualCore";
 
 type Mode = "login" | "register";
@@ -9,17 +12,17 @@ function GoogleMark() {
 }
 
 function KickMark() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 2h8v6h2V6h2V4h6v6h-2v2h2v10h-8v-6h-2v2H9v4H3V2Z"/></svg>;
+  return <span className="kick-letter" aria-hidden="true">K</span>;
 }
 
-function PasswordField({ name, label, repeat = false, current = false }: { name: string; label: string; repeat?: boolean; current?: boolean }) {
+function PasswordField({ name, label, current = false, inputRef }: { name: string; label: string; current?: boolean; inputRef?: Ref<HTMLInputElement> }) {
   const [visible, setVisible] = useState(false);
   return (
     <label>{label}
       <span className="password-field">
-        <input name={name} type={visible ? "text" : "password"} autoComplete={current ? "current-password" : "new-password"} minLength={10} maxLength={200} required />
+        <input ref={inputRef} name={name} type={visible ? "text" : "password"} autoComplete={current ? "current-password" : "new-password"} minLength={10} maxLength={200} required />
         <button type="button" className={visible ? "password-toggle visible" : "password-toggle"} onClick={() => setVisible((value) => !value)} aria-label={visible ? "Şifreyi gizle" : "Şifreyi göster"} aria-pressed={visible}>
-          <span className="password-scan-eye" aria-hidden="true"><i /></span>
+          <span className="password-signal-visor" aria-hidden="true"><i /><b /><em /></span>
         </button>
       </span>
     </label>
@@ -32,12 +35,19 @@ function AccountPanel() {
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [nativeInfoOpen, setNativeInfoOpen] = useState(false);
+  const [rememberedAccounts, setRememberedAccounts] = useState(readRememberedSwAccounts);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [status, setStatus] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const identityInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const formStartedAtRef = useRef(Date.now());
 
   useEffect(() => {
     const oauth = new URLSearchParams(window.location.search);
     if (oauth.get("oauth") === "success") {
-      window.location.replace("/center/");
+      window.location.replace("/home/");
       return;
     }
     const oauthError = oauth.get("oauth_error");
@@ -53,13 +63,33 @@ function AccountPanel() {
       setStatus({ type: "error", text: messages[oauthError] || messages.failed });
     }
     apiRequest<SwAccount>("/api/account")
-      .then(() => window.location.replace("/center/"))
+      .then((account) => {
+        rememberSwAccount(account);
+        window.location.replace("/home/");
+      })
       .catch(() => setChecking(false));
   }, []);
+
+  useEffect(() => {
+    if (!nativeInfoOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNativeInfoOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [nativeInfoOpen]);
 
   function changeMode(next: Mode) {
     setMode(next);
     setStatus(null);
+    setNativeInfoOpen(false);
+    setTurnstileReset((value) => value + 1);
+    formStartedAtRef.current = Date.now();
     const url = new URL(window.location.href);
     if (next === "register") url.searchParams.set("mode", "register");
     else url.searchParams.delete("mode");
@@ -71,6 +101,18 @@ function AccountPanel() {
     return `${API_BASE}/api/auth/oauth/${provider}/start?${query}`;
   }
 
+  function chooseRememberedAccount(username: string) {
+    if (identityInputRef.current) identityInputRef.current.value = username;
+    setNativeInfoOpen(false);
+    window.requestAnimationFrame(() => passwordInputRef.current?.focus());
+  }
+
+  function useAnotherAccount() {
+    if (identityInputRef.current) identityInputRef.current.value = "";
+    setNativeInfoOpen(false);
+    window.requestAnimationFrame(() => identityInputRef.current?.focus());
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -78,13 +120,18 @@ function AccountPanel() {
     const form = new FormData(event.currentTarget);
     const password = String(form.get("password") || "");
     const passwordRepeat = String(form.get("passwordRepeat") || "");
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setBusy(false);
+      setStatus({ type: "error", text: "SW Identity doğrulaması hazırlanıyor. Birkaç saniye sonra yeniden dene." });
+      return;
+    }
     if (mode === "register" && password !== passwordRepeat) {
       setBusy(false);
       setStatus({ type: "error", text: "Şifreler aynı değil." });
       return;
     }
     try {
-      await apiRequest<SwAccount>(`/api/auth/${mode}`, {
+      const account = await apiRequest<SwAccount>(`/api/auth/${mode}`, {
         method: "POST",
         body: JSON.stringify({
           identity: String(form.get("identity") || ""),
@@ -93,11 +140,16 @@ function AccountPanel() {
           passwordRepeat,
           birthDate: String(form.get("birthDate") || ""),
           remember,
+          website: String(form.get("website") || ""),
+          startedAt: formStartedAtRef.current,
+          turnstileToken,
         }),
       });
-      window.location.replace("/center/");
+      rememberSwAccount(account);
+      window.location.replace("/home/");
     } catch (error) {
       setStatus({ type: "error", text: error instanceof Error ? error.message : "İşlem tamamlanamadı." });
+      setTurnstileReset((value) => value + 1);
     } finally {
       setBusy(false);
     }
@@ -108,7 +160,7 @@ function AccountPanel() {
   return (
     <section className="account-panel">
       <div className="auth-box">
-        <p className="section-number">SW IDENTITY — BAĞIMSIZ HESAP</p>
+        <p className="section-number">SW IDENTITY v{SW_IDENTITY_VERSION} — BAĞIMSIZ HESAP</p>
         <h1>{mode === "login" ? <>TEKRAR<br />HOŞ GELDİN.</> : <>KİMLİĞİNİ<br />OLUŞTUR.</>}</h1>
         <p>{mode === "login" ? "Var olan SW hesabınla merkezine gir." : "Tek kullanıcı adıyla bütün SW ürünlerine bağlan."}</p>
 
@@ -118,17 +170,29 @@ function AccountPanel() {
         </div>
 
         <form className="auth-form profile-form" onSubmit={submit}>
+          <label className="identity-honeypot" aria-hidden="true">ŞİRKET SİTESİ<input name="website" autoComplete="off" tabIndex={-1} /></label>
           {mode === "login" ? (
-            <label>E-POSTA YA DA KULLANICI ADI<input name="identity" autoComplete="username" required /></label>
+            <label>E-POSTA YA DA KULLANICI ADI<input ref={identityInputRef} name="identity" autoComplete="username" required /></label>
           ) : (
             <label>KULLANICI ADI<input name="username" autoComplete="username" minLength={3} maxLength={32} pattern="[A-Za-z0-9._-]+" required /></label>
           )}
-          <PasswordField name="password" label="ŞİFRE" current={mode === "login"} />
-          {mode === "register" && <PasswordField name="passwordRepeat" label="ŞİFRE TEKRAR" repeat />}
+          <PasswordField name="password" label="ŞİFRE" current={mode === "login"} inputRef={passwordInputRef} />
+          {mode === "register" && <PasswordField name="passwordRepeat" label="ŞİFRE TEKRAR" />}
           {mode === "register" && <label>DOĞUM TARİHİ<input name="birthDate" type="date" autoComplete="bday" min="1900-01-01" required /></label>}
 
+          <TurnstileChallenge onToken={setTurnstileToken} resetSignal={turnstileReset} />
+
+          <button type="submit" className="native-auth-submit" disabled={busy}>
+            {busy ? "BAĞLANIYOR…" : mode === "login" ? "GİRİŞ YAP" : "HESAP OLUŞTUR"}
+            <span aria-hidden="true">↗</span>
+          </button>
+
+          <div className="auth-provider-divider"><span>YA DA SAĞLAYICIYLA DEVAM ET</span></div>
+
           <div className="social-auth social-auth-icons" aria-label="Hesap sağlayıcısı">
-            <button type="submit" className="social-auth-button sw" title="SW hesabıyla devam et" aria-label="SW hesabıyla devam et" disabled={busy}><img src="/brand/swcreate-logo.png" alt="" /></button>
+            {mode === "login" && <button type="button" className="social-auth-button sw" title="SW Identity ile devam et" aria-label="SW Identity ile devam et" aria-haspopup="dialog" aria-expanded={nativeInfoOpen} onClick={() => {
+              setNativeInfoOpen((open) => !open);
+            }}><img src="/brand/swcreate-logo.png" alt="" /></button>}
             <a className="social-auth-button google" href={oauthUrl("google")} title="Google ile devam et" aria-label="Google ile devam et"><GoogleMark /></a>
             <a className="social-auth-button kick" href={oauthUrl("kick")} title="Kick ile devam et" aria-label="Kick ile devam et"><KickMark /></a>
           </div>
@@ -138,6 +202,20 @@ function AccountPanel() {
         <div className={`auth-status ${status?.type || ""}`} role="status">{status?.text}</div>
         <p className="identity-legal">Devam ederek <a href="/terms/">Koşullar</a> ve <a href="/privacy/">Gizlilik Politikası</a> metinlerini kabul etmiş olursun.</p>
         <a className="account-back" href="/">← SW Create’a dön</a>
+
+        {mode === "login" && nativeInfoOpen && <div className="sw-account-picker" role="dialog" aria-modal="true" aria-labelledby="sw-account-picker-title">
+          <button type="button" className="sw-account-picker-backdrop" onClick={() => setNativeInfoOpen(false)} aria-label="Hesap seçiciyi kapat" />
+          <section>
+            <header><img src="/brand/swcreate-logo.png" alt="" /><div><span>SW IDENTITY</span><h2 id="sw-account-picker-title">Bir hesap seç</h2></div><button type="button" onClick={() => setNativeInfoOpen(false)} aria-label="Kapat">×</button></header>
+            <p>Bu cihazda daha önce kullanılan SW hesapları. Yalnızca hesap adı hatırlanır; şifren cihazda saklanmaz.</p>
+            <div className="sw-account-picker-list">
+              {rememberedAccounts.map((account) => <div className="sw-account-picker-row" key={account.id}><button type="button" className="sw-account-picker-select" onClick={() => chooseRememberedAccount(account.username)}><span>{account.displayName.slice(0, 1).toLocaleUpperCase("tr-TR")}</span><div><strong>{account.displayName}</strong><small>@{account.username}</small></div><b aria-hidden="true">→</b></button><button type="button" className="sw-account-picker-forget" aria-label={`${account.displayName} hesabını bu cihazdan unut`} onClick={() => setRememberedAccounts(forgetRememberedSwAccount(account.id))}>×</button></div>)}
+              {rememberedAccounts.length === 0 && <div className="sw-account-picker-empty"><strong>Bu cihazda kayıtlı hesap yok.</strong><span>İlk girişinden sonra hesabın burada görünecek.</span></div>}
+            </div>
+            <button type="button" className="sw-account-picker-other" onClick={useAnotherAccount}><span>+</span> Başka bir SW hesabı kullan</button>
+            <footer>SW IDENTITY v{SW_IDENTITY_VERSION} · PAROLA SAKLANMAZ</footer>
+          </section>
+        </div>}
       </div>
     </section>
   );

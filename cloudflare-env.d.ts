@@ -32,5 +32,6 @@ declare module "cloudflare:workers" {
   export const env: {
     DB: D1Database;
     AUTH_PEPPER?: string;
+    TURNSTILE_SECRET_KEY?: string;
   };
 }

@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         account: resolve(__dirname, "account/index.html"),
+        home: resolve(__dirname, "home/index.html"),
         center: resolve(__dirname, "center/index.html"),
         privacy: resolve(__dirname, "privacy/index.html"),
         terms: resolve(__dirname, "terms/index.html"),

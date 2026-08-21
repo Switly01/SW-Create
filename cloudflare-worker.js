@@ -1,6 +1,7 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
+const SW_IDENTITY_VERSION = "1.0.0";
 const ACCOUNT_URL = "https://swcreate.com/account/";
 const GOOGLE_OAUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
@@ -81,7 +82,12 @@ function corsHeaders(request) {
   const headers = new Headers({
     "cache-control": "no-store",
     "content-type": "application/json; charset=utf-8",
+    "cross-origin-resource-policy": "same-site",
+    "permissions-policy": "camera=(), microphone=(), geolocation=()",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
+    "x-frame-options": "DENY",
     "x-content-type-options": "nosniff",
+    "x-sw-identity": `SW Identity v${SW_IDENTITY_VERSION}`,
     "referrer-policy": "no-referrer",
     vary: "Origin",
   });
@@ -148,10 +154,10 @@ async function parseBody(request) {
   return request.json();
 }
 
-async function rateLimit(env, request, action, limit, windowSeconds) {
+async function rateLimit(env, request, action, limit, windowSeconds, subject = "") {
   const now = Math.floor(Date.now() / 1000);
   const ip = request.headers.get("cf-connecting-ip") || "unknown";
-  const key = await sha256(`${action}:${ip}:${env.AUTH_PEPPER}`);
+  const key = await sha256(`${action}:${ip}:${String(subject).trim().toLowerCase().slice(0, 160)}:${env.AUTH_PEPPER}`);
   await env.DB.prepare(`
     INSERT INTO sw_rate_limits (rate_key, count, reset_at)
     VALUES (?, 1, ?)
@@ -161,6 +167,28 @@ async function rateLimit(env, request, action, limit, windowSeconds) {
   `).bind(key, now + windowSeconds, now, now).run();
   const row = await env.DB.prepare("SELECT count, reset_at FROM sw_rate_limits WHERE rate_key = ?").bind(key).first();
   if (row && row.reset_at > now && row.count > limit) throw new Error("RATE_LIMIT");
+}
+
+async function verifyIdentityRequest(env, request, body) {
+  if (String(body.website || "").trim()) return false;
+  const startedAt = Number(body.startedAt);
+  const elapsed = Date.now() - startedAt;
+  if (!Number.isFinite(startedAt) || elapsed < 650 || elapsed > 2 * 60 * 60 * 1000) return false;
+  if (!env.TURNSTILE_SECRET_KEY) return true;
+
+  const token = String(body.turnstileToken || "").trim();
+  if (!token || token.length > 2048) return false;
+  const form = new FormData();
+  form.set("secret", env.TURNSTILE_SECRET_KEY);
+  form.set("response", token);
+  form.set("remoteip", request.headers.get("cf-connecting-ip") || "");
+  form.set("idempotency_key", crypto.randomUUID());
+  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+  if (!response.ok) return false;
+  const result = await response.json();
+  const hostname = String(result.hostname || "").toLowerCase();
+  const validHostname = hostname === "swcreate.com" || hostname === "www.swcreate.com" || hostname === "localhost" || hostname === "127.0.0.1";
+  return result.success === true && result.action === "sw-auth" && validHostname;
 }
 
 async function createSession(env, userId) {
@@ -256,6 +284,8 @@ async function register(env, request) {
   await rateLimit(env, request, "register", 6, 60 * 60);
   const body = await parseBody(request);
   const username = String(body.username || "").trim();
+  await rateLimit(env, request, "register-account", 4, 60 * 60, username);
+  if (!await verifyIdentityRequest(env, request, body)) throw new Error("BOT_CHALLENGE");
   const password = String(body.password || "");
   const passwordRepeat = String(body.passwordRepeat || "");
   const birthDate = String(body.birthDate || "").trim();
@@ -291,13 +321,15 @@ async function login(env, request) {
   await rateLimit(env, request, "login", 12, 15 * 60);
   const body = await parseBody(request);
   const identity = String(body.identity || "").trim().toLowerCase();
+  await rateLimit(env, request, "login-account", 8, 15 * 60, identity);
+  if (!await verifyIdentityRequest(env, request, body)) throw new Error("BOT_CHALLENGE");
   const password = String(body.password || "");
   const remember = body.remember === true;
   const user = await env.DB.prepare("SELECT id, email, username, display_name AS displayName, birth_date AS birthDate, password_hash AS passwordHash, password_salt AS passwordSalt, created_at AS createdAt FROM sw_users WHERE lower(email) = ? OR lower(username) = ? LIMIT 1")
     .bind(identity, identity).first();
-  if (!user) return json(request, { error: "Hesap mevcut değil." }, 404);
   const candidate = await passwordDigest(password || "invalid-password", user?.passwordSalt || "invalid-salt", env.AUTH_PEPPER);
-  if (!safeEqual(candidate, user.passwordHash)) return json(request, { error: "E-posta, kullanıcı adı veya şifre hatalı." }, 401);
+  const comparisonHash = user?.passwordHash || "0".repeat(64);
+  if (!user || !safeEqual(candidate, comparisonHash)) return json(request, { error: "E-posta, kullanıcı adı veya şifre hatalı." }, 401);
   const token = await createSession(env, user.id);
   return json(request, await accountPayload(env, user), 200, sessionCookie(token, remember));
 }
@@ -497,7 +529,7 @@ export default {
     }
 
     try {
-      if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity" });
+      if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity", version: SW_IDENTITY_VERSION, protection: env.TURNSTILE_SECRET_KEY ? "turnstile" : "passive" });
       if (request.method === "GET" && url.pathname === "/api/stats") return await publicStats(env, request);
       if (request.method === "POST" && url.pathname === "/api/activity/pulse") return await recordProductActivity(env, request);
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/start") return await beginOAuth(env, request, "google");
@@ -515,6 +547,7 @@ export default {
       return json(request, { error: "İstek bulunamadı." }, 404);
     } catch (error) {
       if (error instanceof Error && error.message === "RATE_LIMIT") return json(request, { error: "Çok fazla deneme yapıldı. Biraz bekleyip yeniden dene." }, 429);
+      if (error instanceof Error && error.message === "BOT_CHALLENGE") return json(request, { error: "SW Identity isteği doğrulayamadı. Sayfayı yenileyip yeniden dene." }, 403);
       if (error instanceof Error && error.message === "PAYLOAD_TOO_LARGE") return json(request, { error: "Gönderilen veri çok büyük." }, 413);
       console.error("SW Identity error", error);
       return json(request, { error: "SW Identity şu anda işlemi tamamlayamadı." }, 500);

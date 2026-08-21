@@ -13,6 +13,8 @@ npm run dev
 
 - `/`: marka ve ürün vitrini
 - `/account`: merkezî SW hesabı
+- `/home`: oturum açan kullanıcıya özel ana sayfa
+- `/center`: profil ve SW Identity güvenlik merkezi
 - `/privacy`: gizlilik politikası
 - `/terms`: kullanım koşulları
 - `/api/auth/*`: kayıt, giriş ve çıkış
@@ -21,8 +23,11 @@ npm run dev
 
 ## Güvenlik
 
-`AUTH_PEPPER` yalnızca barındırma ortamında secret olarak tutulmalıdır. Kaynak
-koda ya da GitHub'a eklenmemelidir.
+Güvenlik katmanı `SW Identity v1.0.0` adını taşır. `AUTH_PEPPER` ve isteğe bağlı
+`TURNSTILE_SECRET_KEY` yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
+ya da GitHub'a eklenmemelidir. Turnstile'ın public site key'i GitHub Actions
+variable olarak `VITE_TURNSTILE_SITE_KEY` adıyla verilir. Ayrıntılar
+`SW_IDENTITY_SECURITY.md` dosyasındadır.
 
 ## Veritabanı
 

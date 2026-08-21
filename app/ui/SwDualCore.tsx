@@ -10,7 +10,7 @@ export function SwDualCore({ className = "", label = "SW Create" }: SwDualCorePr
         <img src="/brand/swcreate-logo.png" alt="" />
       </span>
       <span className="sw-dual-core-pixels" aria-hidden="true">
-        {Array.from({ length: 14 }, (_, index) => <i key={index} />)}
+        {Array.from({ length: 18 }, (_, index) => <i key={index} />)}
       </span>
       <span className="sw-dual-core-energy sw-dual-core-energy-one" aria-hidden="true" />
       <span className="sw-dual-core-energy sw-dual-core-energy-two" aria-hidden="true" />
