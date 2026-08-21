@@ -1,6 +1,6 @@
 # SW Identity Security
 
-Sürüm: `1.1.0`
+Sürüm: `1.2.0`
 
 SW Identity, SW Create hesap ve oturum akışının güvenlik katmanıdır. Bu ad bir
 görsel etiketten ibaret değildir; aşağıdaki kontroller birlikte çalışır.
@@ -27,7 +27,7 @@ görsel etiketten ibaret değildir; aşağıdaki kontroller birlikte çalışır
   arayüzün ihtiyaç duyduğu alanlarla sınırlandırılır.
 - TOTP iki aşamalı doğrulama sırları AES-GCM ile şifrelenir; kurtarma kodları
   yalnız hash olarak tutulur ve tek kullanımlıdır.
-- API yanıtları `SW Identity v1.1.0` sürüm başlığı ile güvenlik, içerik türü,
+- API yanıtları `SW Identity v1.2.0` sürüm başlığı ile güvenlik, içerik türü,
   çerçeveleme, izin ve yönlendiren politikalarını taşır.
 - Cihazdaki hesap seçicide yalnızca kullanıcı kimliği ve görünen ad saklanır;
   parola, OAuth token'ı veya oturum anahtarı `localStorage` içine yazılmaz.

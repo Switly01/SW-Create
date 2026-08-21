@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE } from "../../src/api";
+import { savedSwLanguage, SW_LANGUAGES, type SwLanguage } from "../../src/languages";
 import { SwDualCore } from "./SwDualCore";
 
 function Link({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) {
@@ -65,18 +66,8 @@ const principles = [
   ["Karakterli üretim", "Kopyalanan kalıplar değil; problemi gerçekten çözen bağımsız ürünler."],
 ];
 
-const languages = [
-  ["tr", "/flags/tr.svg", "Türkçe"],
-  ["en", "/flags/en.svg", "English"],
-  ["de", "/flags/de.svg", "Deutsch"],
-  ["es", "/flags/es.svg", "Español"],
-  ["fr", "/flags/fr.svg", "Français"],
-  ["ru", "/flags/ru.svg", "Русский"],
-  ["ar", "/flags/ar.svg", "العربية"],
-  ["ja", "/flags/ja.svg", "日本語"],
-] as const;
-
-type Language = typeof languages[number][0];
+const languages = SW_LANGUAGES;
+type Language = SwLanguage;
 const localizedHero: Record<Language, { products: string; method: string; edition: string; account: string; eyebrow: string; title: [string, string, string]; lead: string; action: string; enter: string }> = {
   tr: { products: "Ürünler", method: "SW yönetimi", edition: "SW üyeliği", account: "SW hesabı", eyebrow: "BAĞIMSIZ TEKNOLOJİ STÜDYOSU", title: ["FİKRİN", "KENDİ ÇEKİM", "ALANI OLSUN."], lead: "Yaratıcıların ve dijital toplulukların etrafında dönen karakterli ürünler tasarlıyor, geliştiriyor ve büyütüyoruz.", action: "Sinyali takip et", enter: "SW merkezine gir" },
   en: { products: "Products", method: "SW method", edition: "Edition", account: "SW account", eyebrow: "INDEPENDENT TECHNOLOGY STUDIO", title: ["GIVE YOUR", "IDEA ITS OWN", "GRAVITY."], lead: "We design, build and grow distinctive products around creators and digital communities.", action: "Follow the signal", enter: "Enter SW center" },
@@ -100,16 +91,27 @@ function productVisitorId() {
 export function BrandSite() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
-  const [language, setLanguage] = useState<Language>("tr");
+  const [language, setLanguage] = useState<Language>(savedSwLanguage);
   const [playConnectStore] = useState(playConnectStoreForBrowser);
   const [systemStats, setSystemStats] = useState({ activeUsers: "—", registeredAccounts: "—", activeProducts: "—" });
   const cursorOrbitRef = useRef<HTMLDivElement>(null);
+  const languageControlRef = useRef<HTMLDivElement>(null);
   const ui = localizedHero[language];
   const activeLanguage = languages.find(([code]) => code === language) ?? languages[0];
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("sw-language") as Language | null;
-    if (saved && languages.some(([code]) => code === saved)) setLanguage(saved);
+    const closeLanguage = (event: PointerEvent) => {
+      if (!languageControlRef.current?.contains(event.target as Node)) setLanguageOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLanguageOpen(false);
+    };
+    document.addEventListener("pointerdown", closeLanguage);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeLanguage);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, []);
 
   useEffect(() => {
@@ -220,7 +222,7 @@ export function BrandSite() {
           <a href="#products" onClick={() => setMenuOpen(false)}>{ui.products}</a>
           <a href="#studio" onClick={() => setMenuOpen(false)}>{ui.method}</a>
           <a href="#edition" onClick={() => setMenuOpen(false)}>{ui.edition}</a>
-          <div className="language-control">
+          <div className="language-control" ref={languageControlRef}>
             <button type="button" className="language-button" onClick={() => setLanguageOpen(!languageOpen)} aria-expanded={languageOpen} aria-label="Dil seçimi"><img src={activeLanguage[1]} alt="" /><span>{language.toUpperCase()}</span></button>
             {languageOpen && <div className="language-menu" role="menu" aria-label="Dil seçimi">
               {languages.map(([code, flag, label]) => <button type="button" key={code} className={language === code ? "active" : ""} onClick={() => chooseLanguage(code)} role="menuitem"><img src={flag} alt="" />{label}</button>)}

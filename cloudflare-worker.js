@@ -1,7 +1,8 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.1.0";
+const SW_IDENTITY_VERSION = "1.2.0";
+const SW_IDENTITY_RELEASED_AT = 1787263200;
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
 const TOTP_SETUP_TTL = 10 * 60;
@@ -272,6 +273,108 @@ async function accountPayload(env, user) {
       dataFlowProtection: "verified",
     },
   };
+}
+
+function cleanSupportText(value, minimum, maximum) {
+  const text = String(value || "").replace(/\r\n/g, "\n").trim();
+  return text.length >= minimum && text.length <= maximum ? text : null;
+}
+
+async function supportTicketPayload(env, userId, ticketId = null) {
+  const filter = ticketId ? "AND id = ?" : "";
+  const query = `SELECT id, subject, category, status, created_at AS createdAt,
+      updated_at AS updatedAt, last_reply_at AS lastReplyAt
+    FROM sw_support_tickets WHERE user_id = ? ${filter}
+    ORDER BY updated_at DESC LIMIT 50`;
+  const statement = env.DB.prepare(query);
+  const rows = ticketId ? await statement.bind(userId, ticketId).all() : await statement.bind(userId).all();
+  const tickets = rows.results || [];
+  if (!tickets.length) return [];
+  const placeholders = tickets.map(() => "?").join(",");
+  const messages = await env.DB.prepare(`SELECT id, ticket_id AS ticketId, sender, body, created_at AS createdAt
+    FROM sw_support_messages WHERE ticket_id IN (${placeholders}) ORDER BY created_at ASC`)
+    .bind(...tickets.map((ticket) => ticket.id)).all();
+  const grouped = new Map(tickets.map((ticket) => [ticket.id, []]));
+  for (const message of messages.results || []) grouped.get(message.ticketId)?.push({ id: message.id, sender: message.sender, body: message.body, createdAt: message.createdAt });
+  return tickets.map((ticket) => ({ ...ticket, messages: grouped.get(ticket.id) || [] }));
+}
+
+async function listSupportTickets(env, request, user) {
+  return json(request, { tickets: await supportTicketPayload(env, user.id) });
+}
+
+async function createSupportTicket(env, request, user) {
+  await rateLimit(env, request, "support.create", 4, 60, user.id);
+  const body = await parseBody(request);
+  const subject = cleanSupportText(body.subject, 4, 100);
+  const message = cleanSupportText(body.message, 10, 2000);
+  const category = ["technical", "account", "plans", "feedback"].includes(String(body.category)) ? String(body.category) : "technical";
+  if (!subject || !message) return json(request, { error: "Konu veya mesaj uzunluğu geçerli değil." }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  const ticketId = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO sw_support_tickets
+      (id, user_id, subject, category, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'open', ?, ?)`).bind(ticketId, user.id, subject, category, now, now),
+    env.DB.prepare(`INSERT INTO sw_support_messages
+      (id, ticket_id, sender, body, created_at) VALUES (?, ?, 'user', ?, ?)`)
+      .bind(crypto.randomUUID(), ticketId, message, now),
+  ]);
+  await recordSecurityEvent(env, request, "support.ticket.create", user.id);
+  const [ticket] = await supportTicketPayload(env, user.id, ticketId);
+  return json(request, { ok: true, ticket }, 201);
+}
+
+async function addSupportMessage(env, request, user, ticketId) {
+  await rateLimit(env, request, "support.message", 10, 60, user.id);
+  const body = await parseBody(request);
+  const message = cleanSupportText(body.message, 4, 2000);
+  if (!message) return json(request, { error: "Mesaj uzunluğu geçerli değil." }, 400);
+  const ticket = await env.DB.prepare("SELECT id FROM sw_support_tickets WHERE id = ? AND user_id = ? LIMIT 1").bind(ticketId, user.id).first();
+  if (!ticket) return json(request, { error: "Destek talebi bulunamadı." }, 404);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sw_support_messages (id, ticket_id, sender, body, created_at) VALUES (?, ?, 'user', ?, ?)").bind(crypto.randomUUID(), ticketId, message, now),
+    env.DB.prepare("UPDATE sw_support_tickets SET status = 'open', updated_at = ? WHERE id = ?").bind(now, ticketId),
+  ]);
+  await recordSecurityEvent(env, request, "support.ticket.message", user.id);
+  const [updated] = await supportTicketPayload(env, user.id, ticketId);
+  return json(request, { ok: true, ticket: updated });
+}
+
+async function replySupportInternally(env, request) {
+  const authorization = request.headers.get("authorization") || "";
+  if (!env.SUPPORT_ADMIN_KEY || authorization !== `Bearer ${env.SUPPORT_ADMIN_KEY}`) return json(request, { error: "Yetkisiz destek işlemi." }, 401);
+  const body = await parseBody(request);
+  const ticketId = String(body.ticketId || "").trim();
+  const message = cleanSupportText(body.message, 4, 2000);
+  const ticket = ticketId ? await env.DB.prepare("SELECT id FROM sw_support_tickets WHERE id = ? LIMIT 1").bind(ticketId).first() : null;
+  if (!ticket || !message) return json(request, { error: "Destek talebi veya yanıt geçerli değil." }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sw_support_messages (id, ticket_id, sender, body, created_at) VALUES (?, ?, 'support', ?, ?)").bind(crypto.randomUUID(), ticketId, message, now),
+    env.DB.prepare("UPDATE sw_support_tickets SET status = 'answered', updated_at = ?, last_reply_at = ? WHERE id = ?").bind(now, now, ticketId),
+  ]);
+  return json(request, { ok: true });
+}
+
+async function notificationSync(env, request, user) {
+  const rows = await env.DB.prepare(`SELECT id, subject, created_at AS createdAt, last_reply_at AS lastReplyAt
+    FROM sw_support_tickets WHERE user_id = ? ORDER BY updated_at DESC LIMIT 30`).bind(user.id).all();
+  const notifications = [{
+    id: `release:${SW_IDENTITY_VERSION}`,
+    type: "release",
+    title: `SW Identity v${SW_IDENTITY_VERSION}`,
+    body: "Akıllı Play Bot, destek ağı, canlı bildirimler ve plan Dashboard'u yayında.",
+    target: "updates",
+    createdAt: SW_IDENTITY_RELEASED_AT,
+  }];
+  for (const ticket of rows.results || []) {
+    notifications.push({ id: `support:submitted:${ticket.id}`, type: "support-submitted", title: "Destek talebin alındı", body: ticket.subject, target: "support", ticketId: ticket.id, createdAt: ticket.createdAt });
+    if (ticket.lastReplyAt) notifications.push({ id: `support:answered:${ticket.id}:${ticket.lastReplyAt}`, type: "support-answered", title: "SW Destek yanıtladı", body: ticket.subject, target: "support", ticketId: ticket.id, createdAt: ticket.lastReplyAt });
+  }
+  notifications.sort((left, right) => right.createdAt - left.createdAt);
+  return json(request, { version: SW_IDENTITY_VERSION, notifications: notifications.slice(0, 50) });
 }
 
 async function publicStats(env, request) {
@@ -824,6 +927,7 @@ export default {
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/start") return await beginOAuth(env, request, "kick");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/callback") return await finishOAuth(env, request, "google");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/callback") return await finishOAuth(env, request, "kick");
+      if (request.method === "POST" && url.pathname === "/api/internal/support/reply") return await replySupportInternally(env, request);
       if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !validOrigin(request)) return json(request, { error: "Geçersiz istek kaynağı." }, 403);
       if (request.method === "POST" && url.pathname === "/api/auth/register") return await register(env, request);
       if (request.method === "POST" && url.pathname === "/api/auth/login") return await login(env, request);
@@ -832,6 +936,11 @@ export default {
 
       const user = await currentUser(env, request);
       if (request.method === "GET" && url.pathname === "/api/account") return user ? json(request, await accountPayload(env, user)) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "GET" && url.pathname === "/api/support/tickets") return user ? await listSupportTickets(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "POST" && url.pathname === "/api/support/tickets") return user ? await createSupportTicket(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      const supportMessageMatch = url.pathname.match(/^\/api\/support\/tickets\/([a-f0-9-]{36})\/messages$/i);
+      if (request.method === "POST" && supportMessageMatch) return user ? await addSupportMessage(env, request, user, supportMessageMatch[1]) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "GET" && url.pathname === "/api/notifications/sync") return user ? await notificationSync(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "PUT" && url.pathname === "/api/account/profile") return user ? await updateProfile(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/totp/setup") return user ? await beginTotpSetup(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/totp/confirm") return user ? await confirmTotpSetup(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);

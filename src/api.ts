@@ -27,6 +27,39 @@ export type SwTwoFactorChallenge = {
   expiresAt: string;
 };
 
+export type SwSupportMessage = {
+  id: string;
+  sender: "user" | "support";
+  body: string;
+  createdAt: number;
+};
+
+export type SwSupportTicket = {
+  id: string;
+  subject: string;
+  category: string;
+  status: "open" | "answered" | "closed";
+  createdAt: number;
+  updatedAt: number;
+  lastReplyAt: number | null;
+  messages: SwSupportMessage[];
+};
+
+export type SwNotification = {
+  id: string;
+  type: "release" | "support-submitted" | "support-answered";
+  title: string;
+  body: string;
+  target: "updates" | "support";
+  ticketId?: string;
+  createdAt: number;
+};
+
+export type SwNotificationSync = {
+  version: string;
+  notifications: SwNotification[];
+};
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const flowId = crypto.randomUUID();
   const response = await fetch(`${API_BASE}${path}`, {
