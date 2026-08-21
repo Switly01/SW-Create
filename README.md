@@ -15,6 +15,7 @@ npm run dev
 - `/account`: merkezî SW hesabı
 - `/home`: oturum açan kullanıcıya özel ana sayfa
 - `/center`: profil ve SW Identity güvenlik merkezi
+- `/dashboard`: plan, abonelik ve ürün erişim paneli
 - `/privacy`: gizlilik politikası
 - `/terms`: kullanım koşulları
 - `/api/auth/*`: kayıt, giriş ve çıkış
@@ -23,7 +24,7 @@ npm run dev
 
 ## Güvenlik
 
-Güvenlik katmanı `SW Identity v1.2.1` adını taşır. `AUTH_PEPPER`, isteğe bağlı
+Güvenlik katmanı `SW Identity v1.3.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
 `TURNSTILE_SECRET_KEY` ve iki aşamalı doğrulama için `TOTP_ENCRYPTION_KEY`
 yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
 ya da GitHub'a eklenmemelidir. Turnstile'ın public site key'i GitHub Actions
@@ -36,6 +37,10 @@ variable olarak `VITE_TURNSTILE_SITE_KEY` adıyla verilir. Ayrıntılar
 kez uygulanır. Cloudflare Worker D1 bağlamasını `DB` adıyla kullanır.
 SW Identity 1.1 veri akışı ve TOTP tabloları `migrations/0006_sw_identity_v1_1.sql`
 migration'ıyla eklenir.
+SW Identity 1.3 profil, cihaz ve destek dosyası kayıtları
+`migrations/0008_account_devices_attachments.sql` migration'ıyla eklenir.
+Profil ve destek dosyaları ek bir ücretli depolama servisi gerektirmeden özel
+D1 dosya nesneleri ve parçaları olarak tutulur.
 
 ## Alan adı
 

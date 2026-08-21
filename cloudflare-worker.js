@@ -1,8 +1,8 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.2.1";
-const SW_IDENTITY_RELEASED_AT = 1787263200;
+const SW_IDENTITY_VERSION = "1.3.0";
+const SW_IDENTITY_RELEASED_AT = 1787316785;
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
 const TOTP_SETUP_TTL = 10 * 60;
@@ -102,7 +102,7 @@ function corsHeaders(request) {
   if (origin && ALLOWED_ORIGINS.has(origin)) {
     headers.set("access-control-allow-origin", origin);
     headers.set("access-control-allow-credentials", "true");
-    headers.set("access-control-allow-methods", "GET,POST,PUT,OPTIONS");
+    headers.set("access-control-allow-methods", "GET,POST,PUT,DELETE,OPTIONS");
     headers.set("access-control-allow-headers", "Content-Type, X-SW-Flow-ID");
     headers.set("access-control-expose-headers", "X-SW-Identity, X-SW-Flow-ID");
   }
@@ -221,12 +221,20 @@ async function verifyIdentityRequest(env, request, body) {
   return result.success === true && result.action === "sw-auth" && validHostname;
 }
 
-async function createSession(env, userId) {
+async function createSession(env, userId, request) {
   const token = randomHex(32);
   const tokenHash = await sha256(token);
   const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare("INSERT INTO sw_sessions (id, user_id, token_hash, expires_at, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .bind(crypto.randomUUID(), userId, tokenHash, now + SESSION_TTL, now, now).run();
+  const ip = request?.headers.get("cf-connecting-ip") || "unknown";
+  const ipHash = await sha256(`session:${ip}:${env.AUTH_PEPPER}`);
+  const cf = request?.cf || {};
+  await env.DB.prepare(`INSERT INTO sw_sessions
+    (id, user_id, token_hash, expires_at, created_at, last_seen_at, user_agent, ip_hash, city, region, country)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(crypto.randomUUID(), userId, tokenHash, now + SESSION_TTL, now, now,
+      String(request?.headers.get("user-agent") || "").slice(0, 400), ipHash,
+      String(cf.city || "").slice(0, 100) || null, String(cf.region || "").slice(0, 100) || null,
+      String(cf.country || "").slice(0, 10) || null).run();
   return token;
 }
 
@@ -237,7 +245,9 @@ async function currentUser(env, request) {
   const now = Math.floor(Date.now() / 1000);
   const user = await env.DB.prepare(`
     SELECT u.id, u.email, u.username, u.display_name AS displayName, u.birth_date AS birthDate,
-      u.created_at AS createdAt, u.two_factor_enabled AS twoFactorEnabled, s.id AS sessionId
+      u.created_at AS createdAt, u.two_factor_enabled AS twoFactorEnabled,
+      u.profile_avatar_type AS profileAvatarType, u.profile_avatar_value AS profileAvatarValue,
+      s.id AS sessionId
     FROM sw_sessions s
     JOIN sw_users u ON u.id = s.user_id
     WHERE s.token_hash = ? AND s.expires_at > ?
@@ -265,6 +275,11 @@ async function accountPayload(env, user) {
       displayName: user.displayName,
       birthDate: user.birthDate || null,
       createdAt: user.createdAt,
+      avatar: {
+        type: user.profileAvatarType === "custom" ? "custom" : "preset",
+        value: user.profileAvatarValue || "orbit-cyan",
+        url: user.profileAvatarType === "custom" ? "/api/account/avatar" : null,
+      },
     },
     entitlements: rows.results || [],
     security: {
@@ -294,8 +309,17 @@ async function supportTicketPayload(env, userId, ticketId = null) {
   const messages = await env.DB.prepare(`SELECT id, ticket_id AS ticketId, sender, body, created_at AS createdAt
     FROM sw_support_messages WHERE ticket_id IN (${placeholders}) ORDER BY created_at ASC`)
     .bind(...tickets.map((ticket) => ticket.id)).all();
+  const attachments = await env.DB.prepare(`SELECT id, message_id AS messageId, file_name AS fileName,
+      mime_type AS mimeType, size FROM sw_support_attachments
+    WHERE ticket_id IN (${placeholders}) ORDER BY created_at ASC`)
+    .bind(...tickets.map((ticket) => ticket.id)).all().catch(() => ({ results: [] }));
+  const attachmentGroups = new Map();
+  for (const attachment of attachments.results || []) {
+    if (!attachmentGroups.has(attachment.messageId)) attachmentGroups.set(attachment.messageId, []);
+    attachmentGroups.get(attachment.messageId).push({ ...attachment, url: `/api/support/attachments/${attachment.id}` });
+  }
   const grouped = new Map(tickets.map((ticket) => [ticket.id, []]));
-  for (const message of messages.results || []) grouped.get(message.ticketId)?.push({ id: message.id, sender: message.sender, body: message.body, createdAt: message.createdAt });
+  for (const message of messages.results || []) grouped.get(message.ticketId)?.push({ id: message.id, sender: message.sender, body: message.body, createdAt: message.createdAt, attachments: attachmentGroups.get(message.id) || [] });
   return tickets.map((ticket) => ({ ...ticket, messages: grouped.get(ticket.id) || [] }));
 }
 
@@ -342,6 +366,97 @@ async function addSupportMessage(env, request, user, ticketId) {
   return json(request, { ok: true, ticket: updated });
 }
 
+function safeFileName(value) {
+  const cleaned = String(value || "file").replace(/[\u0000-\u001f\u007f<>:"/\\|?*]+/g, "-").trim().slice(0, 140);
+  return cleaned || "file";
+}
+
+async function storePrivateFile(env, userId, purpose, file) {
+  const id = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const chunkSize = 256 * 1024;
+  const statements = [env.DB.prepare(`INSERT INTO sw_file_objects
+    (id, user_id, purpose, file_name, mime_type, size, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(id, userId, purpose, safeFileName(file.name), file.type, file.size, now)];
+  for (let offset = 0, index = 0; offset < bytes.length; offset += chunkSize, index += 1) {
+    const chunk = bytes.slice(offset, Math.min(offset + chunkSize, bytes.length));
+    statements.push(env.DB.prepare("INSERT INTO sw_file_chunks (file_id, chunk_index, data) VALUES (?, ?, ?)").bind(id, index, chunk.buffer));
+  }
+  await env.DB.batch(statements);
+  return { id, fileName: safeFileName(file.name), mimeType: file.type, size: file.size };
+}
+
+async function deletePrivateFile(env, fileId) {
+  if (!fileId) return;
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM sw_file_chunks WHERE file_id = ?").bind(fileId),
+    env.DB.prepare("DELETE FROM sw_file_objects WHERE id = ?").bind(fileId),
+  ]).catch(() => undefined);
+}
+
+async function readPrivateFile(env, fileId, userId, purpose) {
+  const meta = await env.DB.prepare(`SELECT id, file_name AS fileName, mime_type AS mimeType, size
+    FROM sw_file_objects WHERE id = ? AND user_id = ? AND purpose = ? LIMIT 1`).bind(fileId, userId, purpose).first();
+  if (!meta) return null;
+  const rows = await env.DB.prepare("SELECT data FROM sw_file_chunks WHERE file_id = ? ORDER BY chunk_index ASC").bind(fileId).all();
+  const output = new Uint8Array(Number(meta.size));
+  let offset = 0;
+  for (const row of rows.results || []) {
+    const chunk = row.data instanceof ArrayBuffer ? new Uint8Array(row.data) : new Uint8Array(row.data || []);
+    output.set(chunk, offset); offset += chunk.byteLength;
+  }
+  if (offset !== output.byteLength) return null;
+  return { ...meta, bytes: output };
+}
+
+async function uploadSupportAttachment(env, request, user, ticketId) {
+  await rateLimit(env, request, "support.upload", 20, 60, user.id);
+  const ticket = await env.DB.prepare("SELECT id FROM sw_support_tickets WHERE id = ? AND user_id = ? LIMIT 1").bind(ticketId, user.id).first();
+  if (!ticket) return json(request, { error: "Destek talebi bulunamadı." }, 404);
+  const form = await request.formData();
+  const file = form.get("file");
+  const messageId = String(form.get("messageId") || "").trim();
+  if (!(file instanceof File) || !messageId) return json(request, { error: "Dosya veya mesaj bilgisi eksik." }, 400);
+  const message = await env.DB.prepare("SELECT id FROM sw_support_messages WHERE id = ? AND ticket_id = ? LIMIT 1").bind(messageId, ticketId).first();
+  if (!message) return json(request, { error: "Destek mesajı bulunamadı." }, 404);
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "text/plain", "application/zip", "application/x-zip-compressed"]);
+  if (!allowedTypes.has(file.type)) return json(request, { error: "Bu dosya türü desteklenmiyor." }, 415);
+  if (file.size <= 0 || file.size > 10 * 1024 * 1024) return json(request, { error: "Dosya en fazla 10 MB olabilir." }, 413);
+  const usage = await env.DB.prepare("SELECT COUNT(*) AS count, COALESCE(SUM(size), 0) AS total FROM sw_support_attachments WHERE ticket_id = ?").bind(ticketId).first();
+  if (Number(usage?.count || 0) >= 10 || Number(usage?.total || 0) + file.size > 25 * 1024 * 1024) return json(request, { error: "Bir talepte en fazla 10 dosya ve toplam 25 MB kullanılabilir." }, 413);
+  const id = crypto.randomUUID();
+  const stored = await storePrivateFile(env, user.id, "support", file);
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    await env.DB.prepare(`INSERT INTO sw_support_attachments
+      (id, ticket_id, message_id, user_id, object_key, file_name, mime_type, size, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, ticketId, messageId, user.id, stored.id, stored.fileName, stored.mimeType, stored.size, now).run();
+    await env.DB.prepare("UPDATE sw_support_tickets SET updated_at = ? WHERE id = ?").bind(now, ticketId).run();
+  } catch (error) {
+    await deletePrivateFile(env, stored.id);
+    throw error;
+  }
+  await recordSecurityEvent(env, request, "support.attachment.upload", user.id);
+  const [updated] = await supportTicketPayload(env, user.id, ticketId);
+  return json(request, { ok: true, ticket: updated }, 201);
+}
+
+async function serveSupportAttachment(env, request, user, attachmentId) {
+  const attachment = await env.DB.prepare(`SELECT a.object_key AS objectKey, a.file_name AS fileName, a.mime_type AS mimeType
+    FROM sw_support_attachments a JOIN sw_support_tickets t ON t.id = a.ticket_id
+    WHERE a.id = ? AND t.user_id = ? LIMIT 1`).bind(attachmentId, user.id).first();
+  if (!attachment) return json(request, { error: "Dosya bulunamadı." }, 404);
+  const object = await readPrivateFile(env, attachment.objectKey, user.id, "support");
+  if (!object) return json(request, { error: "Dosya bulunamadı." }, 404);
+  const headers = corsHeaders(request);
+  headers.set("content-type", attachment.mimeType || object.mimeType || "application/octet-stream");
+  headers.set("content-disposition", `inline; filename*=UTF-8''${encodeURIComponent(attachment.fileName)}`);
+  headers.set("content-length", String(object.size));
+  return new Response(object.bytes, { headers });
+}
+
 async function replySupportInternally(env, request) {
   const authorization = request.headers.get("authorization") || "";
   if (!env.SUPPORT_ADMIN_KEY || authorization !== `Bearer ${env.SUPPORT_ADMIN_KEY}`) return json(request, { error: "Yetkisiz destek işlemi." }, 401);
@@ -365,7 +480,7 @@ async function notificationSync(env, request, user) {
     id: `release:${SW_IDENTITY_VERSION}`,
     type: "release",
     title: `SW Identity v${SW_IDENTITY_VERSION}`,
-    body: "Akıllı Play Bot, destek ağı, canlı bildirimler ve plan Dashboard'u yayında.",
+    body: "Yeni hesap merkezi, cihaz yönetimi, dosyalı destek ve bağımsız Dashboard yayında.",
     target: "updates",
     createdAt: SW_IDENTITY_RELEASED_AT,
   }];
@@ -451,7 +566,7 @@ async function register(env, request) {
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-connect', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
   ]);
-  const token = await createSession(env, userId);
+  const token = await createSession(env, userId, request);
   await recordSecurityEvent(env, request, "account.register", userId);
   return json(request, await accountPayload(env, { id: userId, email, username, displayName, birthDate, createdAt: now, twoFactorEnabled: 0 }), 201, sessionCookie(token, remember));
 }
@@ -477,7 +592,7 @@ async function login(env, request) {
     await recordSecurityEvent(env, request, "account.login.two_factor", user.id, "challenge");
     return json(request, challenge, 202);
   }
-  const token = await createSession(env, user.id);
+  const token = await createSession(env, user.id, request);
   await recordSecurityEvent(env, request, "account.login", user.id);
   return json(request, await accountPayload(env, user), 200, sessionCookie(token, remember));
 }
@@ -643,7 +758,7 @@ async function verifyTwoFactorLogin(env, request) {
     return json(request, { error: verification.error }, 400);
   }
   await env.DB.prepare("DELETE FROM sw_totp_challenges WHERE id = ?").bind(challengeId).run();
-  const token = await createSession(env, row.userId);
+  const token = await createSession(env, row.userId, request);
   await recordSecurityEvent(env, request, "account.login.two_factor", row.userId);
   return json(request, await accountPayload(env, row), 200, sessionCookie(token, Number(row.remember) === 1));
 }
@@ -725,13 +840,85 @@ async function logout(env, request) {
 async function updateProfile(env, request, user) {
   const body = await parseBody(request);
   const username = String(body.username || "").trim();
+  const avatarPreset = String(body.avatarPreset || "").trim();
+  const allowedAvatars = new Set(["orbit-cyan", "signal-acid", "core-cobalt", "flare-coral", "node-violet", "identity-paper"]);
   if (!/^[A-Za-z0-9._-]{3,32}$/.test(username)) return json(request, { error: "Kullanıcı adı 3–32 karakter olmalı." }, 400);
+  if (avatarPreset && !allowedAvatars.has(avatarPreset)) return json(request, { error: "Profil görseli geçerli değil." }, 400);
   const exists = await env.DB.prepare("SELECT id FROM sw_users WHERE lower(username) = lower(?) AND id != ? LIMIT 1").bind(username, user.id).first();
   if (exists) return json(request, { error: "Bu kullanıcı adı zaten kullanılıyor." }, 409);
   const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare("UPDATE sw_users SET username = ?, display_name = ?, updated_at = ? WHERE id = ?").bind(username, username, now, user.id).run();
+  if (avatarPreset) {
+    if (user.profileAvatarType === "custom" && user.profileAvatarValue) await deletePrivateFile(env, user.profileAvatarValue);
+    await env.DB.prepare("UPDATE sw_users SET username = ?, display_name = ?, profile_avatar_type = 'preset', profile_avatar_value = ?, updated_at = ? WHERE id = ?").bind(username, username, avatarPreset, now, user.id).run();
+  } else {
+    await env.DB.prepare("UPDATE sw_users SET username = ?, display_name = ?, updated_at = ? WHERE id = ?").bind(username, username, now, user.id).run();
+  }
   await recordSecurityEvent(env, request, "account.profile.update", user.id);
-  return json(request, await accountPayload(env, { ...user, username, displayName: username }));
+  return json(request, await accountPayload(env, { ...user, username, displayName: username, ...(avatarPreset ? { profileAvatarType: "preset", profileAvatarValue: avatarPreset } : {}) }));
+}
+
+async function uploadProfileAvatar(env, request, user) {
+  await rateLimit(env, request, "account.avatar", 8, 10 * 60, user.id);
+  const form = await request.formData();
+  const file = form.get("file");
+  if (!(file instanceof File) || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) return json(request, { error: "JPG, PNG veya WebP görsel seç." }, 415);
+  if (file.size <= 0 || file.size > 5 * 1024 * 1024) return json(request, { error: "Profil görseli en fazla 5 MB olabilir." }, 413);
+  const stored = await storePrivateFile(env, user.id, "profile", file);
+  const oldKey = user.profileAvatarType === "custom" ? user.profileAvatarValue : null;
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare("UPDATE sw_users SET profile_avatar_type = 'custom', profile_avatar_value = ?, updated_at = ? WHERE id = ?").bind(stored.id, now, user.id).run();
+  if (oldKey) await deletePrivateFile(env, oldKey);
+  await recordSecurityEvent(env, request, "account.avatar.upload", user.id);
+  return json(request, await accountPayload(env, { ...user, profileAvatarType: "custom", profileAvatarValue: stored.id }));
+}
+
+async function serveProfileAvatar(env, request, user) {
+  if (user.profileAvatarType !== "custom" || !user.profileAvatarValue) return json(request, { error: "Özel profil görseli bulunamadı." }, 404);
+  const object = await readPrivateFile(env, user.profileAvatarValue, user.id, "profile");
+  if (!object) return json(request, { error: "Profil görseli bulunamadı." }, 404);
+  const headers = corsHeaders(request);
+  headers.set("content-type", object.mimeType || "image/webp");
+  headers.set("content-length", String(object.size));
+  headers.set("cache-control", "private, max-age=300");
+  return new Response(object.bytes, { headers });
+}
+
+async function updatePassword(env, request, user) {
+  await rateLimit(env, request, "account.password", 5, 10 * 60, user.id);
+  const body = await parseBody(request);
+  const currentPassword = String(body.currentPassword || "");
+  const newPassword = String(body.newPassword || "");
+  const repeat = String(body.newPasswordRepeat || "");
+  if (newPassword.length < 10 || newPassword.length > 200) return json(request, { error: "Yeni şifre en az 10 karakter olmalı." }, 400);
+  if (newPassword !== repeat) return json(request, { error: "Yeni şifreler aynı değil." }, 400);
+  const privateUser = await env.DB.prepare("SELECT password_hash AS passwordHash, password_salt AS passwordSalt FROM sw_users WHERE id = ? LIMIT 1").bind(user.id).first();
+  const candidate = await passwordDigest(currentPassword || "invalid", privateUser?.passwordSalt || "invalid", env.AUTH_PEPPER);
+  if (!privateUser || !safeEqual(candidate, privateUser.passwordHash)) return json(request, { error: "Mevcut şifre doğru değil." }, 401);
+  const salt = randomHex(18);
+  const digest = await passwordDigest(newPassword, salt, env.AUTH_PEPPER);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.batch([
+    env.DB.prepare("UPDATE sw_users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?").bind(digest, salt, now, user.id),
+    env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId),
+  ]);
+  await recordSecurityEvent(env, request, "account.password.update", user.id);
+  return json(request, { ok: true });
+}
+
+async function listDevices(env, request, user) {
+  const now = Math.floor(Date.now() / 1000);
+  const rows = await env.DB.prepare(`SELECT id, user_agent AS userAgent, created_at AS createdAt,
+      last_seen_at AS lastSeenAt, expires_at AS expiresAt, city, region, country
+    FROM sw_sessions WHERE user_id = ? AND expires_at > ? ORDER BY last_seen_at DESC LIMIT 30`).bind(user.id, now).all();
+  return json(request, { devices: (rows.results || []).map((row) => ({ id: row.id, current: row.id === user.sessionId, userAgent: row.userAgent || "", createdAt: row.createdAt, lastSeenAt: row.lastSeenAt, expiresAt: row.expiresAt, location: { city: row.city || null, region: row.region || null, country: row.country || null } })) });
+}
+
+async function revokeDevice(env, request, user, sessionId) {
+  const target = await env.DB.prepare("SELECT id FROM sw_sessions WHERE id = ? AND user_id = ? LIMIT 1").bind(sessionId, user.id).first();
+  if (!target) return json(request, { error: "Oturum bulunamadı." }, 404);
+  await env.DB.prepare("DELETE FROM sw_sessions WHERE id = ? AND user_id = ?").bind(sessionId, user.id).run();
+  await recordSecurityEvent(env, request, "account.device.revoke", user.id);
+  return json(request, { ok: true, current: sessionId === user.sessionId }, 200, sessionId === user.sessionId ? clearSessionCookie() : undefined);
 }
 
 function oauthProviderConfig(env, provider, origin) {
@@ -897,7 +1084,7 @@ async function finishOAuth(env, request, provider) {
       await recordSecurityEvent(env, request, `oauth.${provider}.two_factor`, user.id, "challenge");
       return accountRedirect({ two_factor_required: "1", challenge_id: challenge.challengeId });
     }
-    const token = await createSession(env, user.id);
+    const token = await createSession(env, user.id, request);
     await recordSecurityEvent(env, request, `oauth.${provider}`, user.id);
     return accountRedirect({ oauth: "success" }, sessionCookie(token, rememberFlag === "1"));
   } catch (error) {
@@ -936,10 +1123,20 @@ export default {
 
       const user = await currentUser(env, request);
       if (request.method === "GET" && url.pathname === "/api/account") return user ? json(request, await accountPayload(env, user)) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "GET" && url.pathname === "/api/account/avatar") return user ? await serveProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "POST" && url.pathname === "/api/account/avatar") return user ? await uploadProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "POST" && url.pathname === "/api/account/password") return user ? await updatePassword(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "GET" && url.pathname === "/api/account/devices") return user ? await listDevices(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      const deviceMatch = url.pathname.match(/^\/api\/account\/devices\/([a-f0-9-]{36})$/i);
+      if (request.method === "DELETE" && deviceMatch) return user ? await revokeDevice(env, request, user, deviceMatch[1]) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "GET" && url.pathname === "/api/support/tickets") return user ? await listSupportTickets(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/support/tickets") return user ? await createSupportTicket(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       const supportMessageMatch = url.pathname.match(/^\/api\/support\/tickets\/([a-f0-9-]{36})\/messages$/i);
       if (request.method === "POST" && supportMessageMatch) return user ? await addSupportMessage(env, request, user, supportMessageMatch[1]) : json(request, { error: "Oturum bulunamadı." }, 401);
+      const supportUploadMatch = url.pathname.match(/^\/api\/support\/tickets\/([a-f0-9-]{36})\/attachments$/i);
+      if (request.method === "POST" && supportUploadMatch) return user ? await uploadSupportAttachment(env, request, user, supportUploadMatch[1]) : json(request, { error: "Oturum bulunamadı." }, 401);
+      const supportAttachmentMatch = url.pathname.match(/^\/api\/support\/attachments\/([a-f0-9-]{36})$/i);
+      if (request.method === "GET" && supportAttachmentMatch) return user ? await serveSupportAttachment(env, request, user, supportAttachmentMatch[1]) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "GET" && url.pathname === "/api/notifications/sync") return user ? await notificationSync(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "PUT" && url.pathname === "/api/account/profile") return user ? await updateProfile(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/totp/setup") return user ? await beginTotpSetup(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);

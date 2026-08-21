@@ -1,6 +1,12 @@
 # SW Identity Security
 
-Sürüm: `1.2.1`
+Sürüm: `1.3.0`
+
+Profil fotoğrafları ve destek ekleri özel D1 dosya nesnelerinde parçalı tutulur;
+dosya erişimi oturum ve kayıt sahipliği doğrulamasından sonra Worker üzerinden
+verilir. Destek ekleri dosya başına 10 MB, talep başına 10 dosya ve toplam
+25 MB ile sınırlandırılır. Cihaz kayıtlarında ham IP yerine yalnızca özet değer
+saklanır; kullanıcıya Cloudflare'ın yaklaşık şehir/bölge bilgisi gösterilir.
 
 SW Identity, SW Create hesap ve oturum akışının güvenlik katmanıdır. Bu ad bir
 görsel etiketten ibaret değildir; aşağıdaki kontroller birlikte çalışır.
@@ -27,7 +33,7 @@ görsel etiketten ibaret değildir; aşağıdaki kontroller birlikte çalışır
   arayüzün ihtiyaç duyduğu alanlarla sınırlandırılır.
 - TOTP iki aşamalı doğrulama sırları AES-GCM ile şifrelenir; kurtarma kodları
   yalnız hash olarak tutulur ve tek kullanımlıdır.
-- API yanıtları `SW Identity v1.2.1` sürüm başlığı ile güvenlik, içerik türü,
+- API yanıtları `SW Identity v1.3.0` sürüm başlığı ile güvenlik, içerik türü,
   çerçeveleme, izin ve yönlendiren politikalarını taşır.
 - Cihazdaki hesap seçicide yalnızca kullanıcı kimliği ve görünen ad saklanır;
   parola, OAuth token'ı veya oturum anahtarı `localStorage` içine yazılmaz.

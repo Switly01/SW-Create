@@ -8,6 +8,11 @@ export type SwAccount = {
     displayName: string;
     birthDate?: string | null;
     createdAt: number;
+    avatar: {
+      type: "preset" | "custom";
+      value: string;
+      url: string | null;
+    };
   };
   entitlements: Array<{
     product: string;
@@ -32,6 +37,25 @@ export type SwSupportMessage = {
   sender: "user" | "support";
   body: string;
   createdAt: number;
+  attachments: SwSupportAttachment[];
+};
+
+export type SwSupportAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+};
+
+export type SwDevice = {
+  id: string;
+  current: boolean;
+  userAgent: string;
+  createdAt: number;
+  lastSeenAt: number;
+  expiresAt: number;
+  location: { city: string | null; region: string | null; country: string | null };
 };
 
 export type SwSupportTicket = {
@@ -62,13 +86,14 @@ export type SwNotificationSync = {
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const flowId = crypto.randomUUID();
+  const formBody = typeof FormData !== "undefined" && init.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       accept: "application/json",
       "x-sw-flow-id": flowId,
-      ...(init.body ? { "content-type": "application/json" } : {}),
+      ...(init.body && !formBody ? { "content-type": "application/json" } : {}),
       ...init.headers,
     },
   });
