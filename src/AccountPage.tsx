@@ -197,6 +197,12 @@ function AccountPanel() {
             <a className="social-auth-button kick" href={oauthUrl("kick")} title="Kick ile devam et" aria-label="Kick ile devam et"><KickMark /></a>
           </div>
 
+          {mode === "login" && nativeInfoOpen && <aside className="native-provider-panel" aria-live="polite">
+            <img src="/brand/swcreate-logo.png" alt="" />
+            <div><strong>SW IDENTITY</strong><p>SW kullanıcı adın veya e-postan ve şifrenle doğrudan giriş yap. Bilgilerini yukarıdaki güvenli alana yazman yeterli.</p></div>
+            <button type="button" onClick={() => identityInputRef.current?.focus()}>Bilgilerime dön</button>
+          </aside>}
+
           <label className="remember-control"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span aria-hidden="true"><i /></span><b>Beni hatırla</b><small>Bu cihazda 30 gün açık kal</small></label>
         </form>
         <div className={`auth-status ${status?.type || ""}`} role="status">{status?.text}</div>
