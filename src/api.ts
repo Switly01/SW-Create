@@ -24,6 +24,12 @@ export type SwAccount = {
     twoFactorEnabled: boolean;
     dataFlowProtection: "verified";
   };
+  connections: Array<{
+    provider: "sw-create" | "play-streamers" | "google" | "kick";
+    label: string;
+    connected: boolean;
+    detail: string;
+  }>;
 };
 
 export type SwTwoFactorChallenge = {
@@ -55,7 +61,7 @@ export type SwDevice = {
   createdAt: number;
   lastSeenAt: number;
   expiresAt: number;
-  location: { city: string | null; region: string | null; country: string | null };
+  location: { city: string | null; region: string | null; country: string | null; latitude: number | null; longitude: number | null };
 };
 
 export type SwSupportTicket = {
@@ -66,6 +72,7 @@ export type SwSupportTicket = {
   createdAt: number;
   updatedAt: number;
   lastReplyAt: number | null;
+  mailStatus: "pending" | "sent" | "failed";
   messages: SwSupportMessage[];
 };
 
@@ -77,6 +84,7 @@ export type SwNotification = {
   target: "updates" | "support";
   ticketId?: string;
   createdAt: number;
+  read: boolean;
 };
 
 export type SwNotificationSync = {

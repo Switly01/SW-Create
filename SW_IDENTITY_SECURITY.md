@@ -1,6 +1,6 @@
 # SW Identity Security
 
-Sürüm: `1.3.0`
+Sürüm: `1.4.0`
 
 Profil fotoğrafları ve destek ekleri özel D1 dosya nesnelerinde parçalı tutulur;
 dosya erişimi oturum ve kayıt sahipliği doğrulamasından sonra Worker üzerinden
@@ -33,10 +33,17 @@ görsel etiketten ibaret değildir; aşağıdaki kontroller birlikte çalışır
   arayüzün ihtiyaç duyduğu alanlarla sınırlandırılır.
 - TOTP iki aşamalı doğrulama sırları AES-GCM ile şifrelenir; kurtarma kodları
   yalnız hash olarak tutulur ve tek kullanımlıdır.
-- API yanıtları `SW Identity v1.3.0` sürüm başlığı ile güvenlik, içerik türü,
+- API yanıtları `SW Identity v1.4.0` sürüm başlığı ile güvenlik, içerik türü,
   çerçeveleme, izin ve yönlendiren politikalarını taşır.
 - Cihazdaki hesap seçicide yalnızca kullanıcı kimliği ve görünen ad saklanır;
   parola, OAuth token'ı veya oturum anahtarı `localStorage` içine yazılmaz.
+- E-posta, şifre ve hesap silme işlemleri; iki adımlı doğrulama açıksa TOTP veya
+  kurtarma kodu, değilse 10 dakika geçerli tek kullanımlık e-posta koduyla
+  doğrulanır. Kod özetleri D1'de tutulur ve hatalı deneme sayısı sınırlandırılır.
+- Destek yanıtları yalnız Resend'in zaman sınırlı HMAC/Svix imzası ve izinli
+  gönderen adresi doğrulandıktan sonra doğru kullanıcı konuşmasına yazılır.
+- Bildirim okundu bilgisi hesapla birlikte sunucuda tutulur; tarayıcı depolaması
+  güvenlik ve görünürlük kararının kaynağı değildir.
 
 ## Turnstile'ı etkinleştirme
 

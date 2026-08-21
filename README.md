@@ -16,6 +16,7 @@ npm run dev
 - `/home`: oturum açan kullanıcıya özel ana sayfa
 - `/center`: profil ve SW Identity güvenlik merkezi
 - `/dashboard`: plan, abonelik ve ürün erişim paneli
+- `/plans`: bağımsız SW planları sayfası
 - `/privacy`: gizlilik politikası
 - `/terms`: kullanım koşulları
 - `/api/auth/*`: kayıt, giriş ve çıkış
@@ -24,7 +25,7 @@ npm run dev
 
 ## Güvenlik
 
-Güvenlik katmanı `SW Identity v1.3.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
+Güvenlik katmanı `SW Identity v1.4.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
 `TURNSTILE_SECRET_KEY` ve iki aşamalı doğrulama için `TOTP_ENCRYPTION_KEY`
 yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
 ya da GitHub'a eklenmemelidir. Turnstile'ın public site key'i GitHub Actions
@@ -41,6 +42,14 @@ SW Identity 1.3 profil, cihaz ve destek dosyası kayıtları
 `migrations/0008_account_devices_attachments.sql` migration'ıyla eklenir.
 Profil ve destek dosyaları ek bir ücretli depolama servisi gerektirmeden özel
 D1 dosya nesneleri ve parçaları olarak tutulur.
+SW Identity 1.4 e-posta kodları, hesapla eşleşen bildirim okundu durumu,
+harita koordinatları ve destek e-posta webhook kayıtlarını
+`migrations/0010_identity_mail_and_controls.sql` migration'ıyla ekler.
+
+E-posta sistemi için `RESEND_API_KEY` ve `RESEND_WEBHOOK_SECRET` Worker secret;
+`SUPPORT_INBOUND_DOMAIN`, `SUPPORT_EMAIL_RECIPIENT` ve isteğe bağlı
+`RESEND_FROM_EMAIL` Worker değişkenidir. Resend `email.received` webhook adresi
+`https://api.swcreate.com/api/webhooks/resend` olmalıdır.
 
 ## Alan adı
 

@@ -41,6 +41,12 @@ function AccountPanel() {
   const [turnstileReset, setTurnstileReset] = useState(0);
   const [twoFactorChallenge, setTwoFactorChallenge] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(params.get("forgot") === "1");
+  const [forgotStep, setForgotStep] = useState<"request" | "reset">("request");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotCode, setForgotCode] = useState("");
+  const [forgotPassword, setForgotPassword] = useState("");
+  const [forgotPasswordRepeat, setForgotPasswordRepeat] = useState("");
   const [status, setStatus] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const identityInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -195,6 +201,25 @@ function AccountPanel() {
     }
   }
 
+  async function requestPasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setStatus(null);
+    try {
+      const data = await apiRequest<{ message: string }>("/api/auth/password/forgot", { method: "POST", body: JSON.stringify({ email: forgotEmail }) });
+      setForgotStep("reset"); setStatus({ type: "success", text: data.message });
+    } catch (error) { setStatus({ type: "error", text: error instanceof Error ? error.message : "Kod gönderilemedi." }); }
+    finally { setBusy(false); }
+  }
+
+  async function resetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setStatus(null);
+    try {
+      await apiRequest("/api/auth/password/reset", { method: "POST", body: JSON.stringify({ email: forgotEmail, code: forgotCode, newPassword: forgotPassword, newPasswordRepeat: forgotPasswordRepeat }) });
+      setForgotOpen(false); setForgotStep("request"); setForgotCode(""); setForgotPassword(""); setForgotPasswordRepeat("");
+      setStatus({ type: "success", text: "Şifren yenilendi. Yeni şifrenle giriş yapabilirsin." });
+    } catch (error) { setStatus({ type: "error", text: error instanceof Error ? error.message : "Şifre sıfırlanamadı." }); }
+    finally { setBusy(false); }
+  }
+
   if (checking) return <section className="account-panel"><div className="auth-box"><p className="section-number">SW IDENTITY</p><h1>HESAP<br />KONTROLÜ.</h1></div></section>;
 
   return (
@@ -244,6 +269,7 @@ function AccountPanel() {
           </aside>}
 
           <label className="remember-control"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span aria-hidden="true"><i /></span><b>Beni hatırla</b><small>Bu cihazda 30 gün açık kal</small></label>
+          {mode === "login" && <button type="button" className="forgot-password-link" onClick={() => { setForgotOpen(true); setForgotStep("request"); setStatus(null); }}>Şifremi unuttum</button>}
         </form>
         <div className={`auth-status ${status?.type || ""}`} role="status">{status?.text}</div>
         <p className="identity-legal">Devam ederek <a href="/terms/">Koşullar</a> ve <a href="/privacy/">Gizlilik Politikası</a> metinlerini kabul etmiş olursun.</p>
@@ -266,6 +292,7 @@ function AccountPanel() {
       {twoFactorChallenge && <div className="identity-2fa-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-2fa-title">
         <section><span>SW IDENTITY v{SW_IDENTITY_VERSION}</span><h2 id="identity-2fa-title">Girişini doğrula</h2><p>Authenticator uygulamandaki 6 haneli kodu veya kurtarma kodlarından birini gir.</p><form onSubmit={verifyTwoFactor}><input value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value)} autoComplete="one-time-code" placeholder="123456 veya XXXX-XXXX" minLength={6} maxLength={9} required autoFocus /><button disabled={busy}>{busy ? "DOĞRULANIYOR…" : "GİRİŞİ TAMAMLA"}</button></form><button type="button" className="identity-2fa-cancel" onClick={() => setTwoFactorChallenge("")}>İptal et</button></section>
       </div>}
+      {forgotOpen && <div className="identity-2fa-overlay identity-forgot-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-forgot-title"><section><span>SW IDENTITY v{SW_IDENTITY_VERSION}</span><h2 id="identity-forgot-title">Şifreni yenile</h2><p>{forgotStep === "request" ? "SW hesabına bağlı e-posta adresini gir. Hesap varsa 6 haneli kod gönderilir." : "E-postana gelen kodu ve yeni şifreni gir."}</p>{forgotStep === "request" ? <form onSubmit={requestPasswordReset}><input type="email" value={forgotEmail} onChange={(event) => setForgotEmail(event.target.value)} autoComplete="email" placeholder="E-posta adresi" required /><button disabled={busy}>{busy ? "GÖNDERİLİYOR…" : "KOD GÖNDER"}</button></form> : <form onSubmit={resetPassword}><input value={forgotCode} onChange={(event) => setForgotCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="6 haneli kod" minLength={6} maxLength={6} required /><input type="password" value={forgotPassword} onChange={(event) => setForgotPassword(event.target.value)} autoComplete="new-password" placeholder="Yeni şifre" minLength={10} required /><input type="password" value={forgotPasswordRepeat} onChange={(event) => setForgotPasswordRepeat(event.target.value)} autoComplete="new-password" placeholder="Yeni şifre tekrar" minLength={10} required /><button disabled={busy}>{busy ? "YENİLENİYOR…" : "ŞİFREYİ YENİLE"}</button></form>}<button type="button" className="identity-2fa-cancel" onClick={() => { setForgotOpen(false); setForgotStep("request"); }}>İptal et</button></section></div>}
     </section>
   );
 }
