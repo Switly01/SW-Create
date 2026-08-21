@@ -25,7 +25,7 @@ npm run dev
 
 ## Güvenlik
 
-Güvenlik katmanı `SW Identity v1.4.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
+Güvenlik katmanı `SW Identity v1.5.0` adını taşır. `AUTH_PEPPER`, isteğe bağlı
 `TURNSTILE_SECRET_KEY` ve iki aşamalı doğrulama için `TOTP_ENCRYPTION_KEY`
 yalnızca Worker secret olarak tutulmalıdır. Kaynak koda
 ya da GitHub'a eklenmemelidir. Turnstile'ın public site key'i GitHub Actions
@@ -42,7 +42,7 @@ SW Identity 1.3 profil, cihaz ve destek dosyası kayıtları
 `migrations/0008_account_devices_attachments.sql` migration'ıyla eklenir.
 Profil ve destek dosyaları ek bir ücretli depolama servisi gerektirmeden özel
 D1 dosya nesneleri ve parçaları olarak tutulur.
-SW Identity 1.4 e-posta kodları, hesapla eşleşen bildirim okundu durumu,
+SW Identity 1.5 e-posta kodları, hesapla eşleşen bildirim okundu durumu,
 harita koordinatları ve destek e-posta webhook kayıtlarını
 `migrations/0010_identity_mail_and_controls.sql` migration'ıyla ekler.
 

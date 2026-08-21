@@ -19,6 +19,7 @@ export type SwAccount = {
     slug: string;
     tier: string;
   }>;
+  subscriptions: SwSubscription[];
   security: {
     identityVersion: string;
     twoFactorEnabled: boolean;
@@ -66,6 +67,7 @@ export type SwDevice = {
 
 export type SwSupportTicket = {
   id: string;
+  ticketNumber: string;
   subject: string;
   category: string;
   status: "open" | "answered" | "closed";
@@ -74,6 +76,36 @@ export type SwSupportTicket = {
   lastReplyAt: number | null;
   mailStatus: "pending" | "sent" | "failed";
   messages: SwSupportMessage[];
+};
+
+export type SwSubscription = {
+  id?: string;
+  productId: string;
+  product?: string;
+  planId: string;
+  planName?: string;
+  tier?: string;
+  status: "active" | "paused" | "cancelled" | "expired";
+  source?: string;
+  startsAt: number;
+  currentPeriodEnd: number | null;
+};
+
+export type SwPlan = {
+  id: string;
+  productId: string;
+  product: string;
+  name: string;
+  tier: string;
+  description: string;
+  billingMode: "free" | "paid";
+  availability: "active" | "coming_soon";
+  sortOrder: number;
+};
+
+export type SwPlanCatalog = {
+  plans: SwPlan[];
+  subscriptions: SwSubscription[];
 };
 
 export type SwNotification = {

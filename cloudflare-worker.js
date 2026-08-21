@@ -1,7 +1,7 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.4.0";
+const SW_IDENTITY_VERSION = "1.5.0";
 const SW_IDENTITY_RELEASED_AT = 1787328000;
 const EMAIL_CODE_TTL = 10 * 60;
 const EMAIL_CODE_RESEND = 40;
@@ -325,6 +325,16 @@ async function accountPayload(env, user) {
   `).bind(user.id, now).all();
   const identities = await env.DB.prepare("SELECT provider FROM sw_oauth_identities WHERE user_id = ?")
     .bind(user.id).all();
+  const subscriptions = await env.DB.prepare(`
+    SELECT s.id, s.product_id AS productId, p.name AS product, s.plan_id AS planId,
+      c.name AS planName, c.tier, s.status, s.source, s.starts_at AS startsAt,
+      s.current_period_end AS currentPeriodEnd
+    FROM sw_subscriptions s
+    JOIN sw_products p ON p.id = s.product_id
+    JOIN sw_plan_catalog c ON c.id = s.plan_id
+    WHERE s.user_id = ?
+    ORDER BY p.name ASC
+  `).bind(user.id).all();
   const connectedProviders = new Set((identities.results || []).map((item) => String(item.provider)));
   const entitlementSlugs = new Set((rows.results || []).map((item) => String(item.slug)));
   return {
@@ -342,6 +352,7 @@ async function accountPayload(env, user) {
       },
     },
     entitlements: rows.results || [],
+    subscriptions: subscriptions.results || [],
     security: {
       identityVersion: SW_IDENTITY_VERSION,
       twoFactorEnabled: Number(user.twoFactorEnabled || 0) === 1,
@@ -356,9 +367,27 @@ async function accountPayload(env, user) {
   };
 }
 
+async function planCatalog(env, request, user) {
+  const [plans, subscriptions] = await Promise.all([
+    env.DB.prepare(`SELECT c.id, c.product_id AS productId, p.name AS product, c.name, c.tier,
+        c.description, c.billing_mode AS billingMode, c.availability, c.sort_order AS sortOrder
+      FROM sw_plan_catalog c JOIN sw_products p ON p.id = c.product_id
+      WHERE p.status = 'active' AND c.availability != 'retired'
+      ORDER BY CASE c.product_id WHEN 'sw-create' THEN 0 WHEN 'play-streamers' THEN 1 ELSE 2 END, c.sort_order ASC`).all(),
+    env.DB.prepare(`SELECT product_id AS productId, plan_id AS planId, status, starts_at AS startsAt,
+        current_period_end AS currentPeriodEnd
+      FROM sw_subscriptions WHERE user_id = ?`).bind(user.id).all(),
+  ]);
+  return json(request, { plans: plans.results || [], subscriptions: subscriptions.results || [] });
+}
+
 function cleanSupportText(value, minimum, maximum) {
   const text = String(value || "").replace(/\r\n/g, "\n").trim();
   return text.length >= minimum && text.length <= maximum ? text : null;
+}
+
+function supportTicketNumber(ticketId) {
+  return `SW-${String(ticketId || "").replace(/-/g, "").slice(0, 10).toUpperCase()}`;
 }
 
 async function emailCodeHash(env, email, purpose, code) {
@@ -422,7 +451,7 @@ async function supportEmailAttachments(env, userId, ticketId) {
 
 async function sendSupportTicketEmail(env, request, user, ticketId) {
   await rateLimit(env, request, "support.email", 5, 10 * 60, user.id);
-  const ticket = await env.DB.prepare(`SELECT id, subject, category, email_delivery_status AS mailStatus
+  const ticket = await env.DB.prepare(`SELECT id, ticket_number AS ticketNumber, subject, category, email_delivery_status AS mailStatus
     FROM sw_support_tickets WHERE id = ? AND user_id = ? LIMIT 1`).bind(ticketId, user.id).first();
   if (!ticket) return json(request, { error: "Destek talebi bulunamadı." }, 404);
   if (ticket.mailStatus === "sent") return json(request, { ok: true, alreadySent: true });
@@ -440,7 +469,7 @@ async function sendSupportTicketEmail(env, request, user, ticketId) {
       from: env.RESEND_FROM_EMAIL || "SW Create Destek <noreply@swcreate.com>",
       to: [env.SUPPORT_EMAIL_RECIPIENT || SUPPORT_RECIPIENT],
       reply_to: replyTo,
-      subject: `[SW Create Talep ${ticket.id}] ${ticket.subject}`,
+      subject: `[SW Create Talep ${ticket.ticketNumber || supportTicketNumber(ticket.id)}] ${ticket.subject}`,
       text: `Gönderen: @${user.username || user.displayName}\nE-posta: ${isPublicEmail(user.email) ? user.email : "Bağlı değil"}\nKategori: ${categoryNames[ticket.category] || ticket.category}\n\n${message?.body || ""}`,
       html: identityEmailHtml(`Yeni destek talebi: ${ticket.subject}`, `Gönderen: @${user.username || user.displayName}\nKategori: ${categoryNames[ticket.category] || ticket.category}\n\n${message?.body || ""}`),
       attachments: await supportEmailAttachments(env, user.id, ticket.id),
@@ -506,9 +535,13 @@ async function receiveSupportEmail(env, request) {
   const ticket = ticketId ? await env.DB.prepare("SELECT id FROM sw_support_tickets WHERE id = ? LIMIT 1").bind(ticketId).first() : null;
   if (!ticket) return json(request, { ok: true, ignored: true });
   const emailId = String(event?.data?.email_id || "");
+  if (!emailId) return json(request, { error: "Gelen e-posta kimliği eksik." }, 400);
   const response = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, { headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, accept: "application/json" } });
   const email = await response.json().catch(() => ({}));
-  if (!response.ok) return json(request, { error: "Gelen e-posta okunamadı." }, 502);
+  if (!response.ok) {
+    console.error("SW support inbound read failed", response.status, String(email?.name || email?.message || "unknown"));
+    return json(request, { error: response.status === 401 ? "Gelen e-posta anahtarı okuma yetkisine sahip değil." : "Gelen e-posta okunamadı." }, 502);
+  }
   const body = cleanSupportReply(email.text || String(email.html || "").replace(/<[^>]+>/g, " "));
   const now = Math.floor(Date.now() / 1000);
   await env.DB.batch([
@@ -521,7 +554,7 @@ async function receiveSupportEmail(env, request) {
 
 async function supportTicketPayload(env, userId, ticketId = null) {
   const filter = ticketId ? "AND id = ?" : "";
-  const query = `SELECT id, subject, category, status, created_at AS createdAt,
+  const query = `SELECT id, ticket_number AS ticketNumber, subject, category, status, created_at AS createdAt,
       updated_at AS updatedAt, last_reply_at AS lastReplyAt,
       email_delivery_status AS mailStatus
     FROM sw_support_tickets WHERE user_id = ? ${filter}
@@ -561,10 +594,11 @@ async function createSupportTicket(env, request, user) {
   if (!subject || !message) return json(request, { error: "Konu veya mesaj uzunluğu geçerli değil." }, 400);
   const now = Math.floor(Date.now() / 1000);
   const ticketId = crypto.randomUUID();
+  const ticketNumber = supportTicketNumber(ticketId);
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO sw_support_tickets
-      (id, user_id, subject, category, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'open', ?, ?)`).bind(ticketId, user.id, subject, category, now, now),
+      (id, ticket_number, user_id, subject, category, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'open', ?, ?)`).bind(ticketId, ticketNumber, user.id, subject, category, now, now),
     env.DB.prepare(`INSERT INTO sw_support_messages
       (id, ticket_id, sender, body, created_at) VALUES (?, ?, 'user', ?, ?)`)
       .bind(crypto.randomUUID(), ticketId, message, now),
@@ -705,7 +739,7 @@ async function notificationSync(env, request, user) {
     id: `release:${SW_IDENTITY_VERSION}`,
     type: "release",
     title: `SW Identity v${SW_IDENTITY_VERSION}`,
-    body: "E-posta doğrulamalı güvenlik, destek posta köprüsü, bağlı platformlar ve haritalı cihaz görünümü yayında.",
+    body: "Talep numaralı destek posta köprüsü ile SW Create ve Play Streamers abonelik veri akışı yayında.",
     target: "updates",
     createdAt: SW_IDENTITY_RELEASED_AT,
   }];
@@ -803,6 +837,8 @@ async function register(env, request) {
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-streamers', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-connect', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
+    env.DB.prepare("INSERT INTO sw_subscriptions (id, user_id, product_id, plan_id, status, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'sw-create-free', 'active', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
+    env.DB.prepare("INSERT INTO sw_subscriptions (id, user_id, product_id, plan_id, status, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-streamers', 'play-streamers-free', 'active', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
   ]);
   const token = await createSession(env, userId, request);
   await recordSecurityEvent(env, request, "account.register", userId);
@@ -1377,6 +1413,8 @@ async function grantDefaultProducts(env, userId, source, now) {
     env.DB.prepare("INSERT OR IGNORE INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-streamers', 'free', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-connect', 'free', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'free', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
+    env.DB.prepare("INSERT OR IGNORE INTO sw_subscriptions (id, user_id, product_id, plan_id, status, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'sw-create-free', 'active', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
+    env.DB.prepare("INSERT OR IGNORE INTO sw_subscriptions (id, user_id, product_id, plan_id, status, source, starts_at, created_at, updated_at) VALUES (?, ?, 'play-streamers', 'play-streamers-free', 'active', ?, ?, ?, ?)").bind(crypto.randomUUID(), userId, source, now, now, now),
   ]);
 }
 
@@ -1460,7 +1498,7 @@ export default {
     }
 
     try {
-      if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity", version: SW_IDENTITY_VERSION, protection: env.TURNSTILE_SECRET_KEY ? "turnstile" : "passive", dataFlow: "verified", twoFactor: env.TOTP_ENCRYPTION_KEY ? "available" : "configuration-required", mail: env.RESEND_API_KEY && env.RESEND_WEBHOOK_SECRET && env.SUPPORT_INBOUND_DOMAIN ? "available" : "configuration-required" });
+      if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity", version: SW_IDENTITY_VERSION, protection: env.TURNSTILE_SECRET_KEY ? "turnstile" : "passive", dataFlow: "verified", twoFactor: env.TOTP_ENCRYPTION_KEY ? "available" : "configuration-required", mail: env.RESEND_API_KEY && env.RESEND_WEBHOOK_SECRET && env.SUPPORT_INBOUND_DOMAIN ? "available" : "configuration-required", subscriptions: "catalog-ready" });
       if (request.method === "GET" && url.pathname === "/api/stats") return await publicStats(env, request);
       if (request.method === "POST" && url.pathname === "/api/activity/pulse") return await recordProductActivity(env, request);
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/start") return await beginOAuth(env, request, "google");
@@ -1479,6 +1517,7 @@ export default {
 
       const user = await currentUser(env, request);
       if (request.method === "GET" && url.pathname === "/api/account") return user ? json(request, await accountPayload(env, user)) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "GET" && url.pathname === "/api/plans") return user ? await planCatalog(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "GET" && url.pathname === "/api/account/avatar") return user ? await serveProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/avatar") return user ? await uploadProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/password") return user ? await updatePassword(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
