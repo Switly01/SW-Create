@@ -133,8 +133,9 @@ function readCookie(request, name) {
   return null;
 }
 
-function sessionCookie(token) {
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL}`;
+function sessionCookie(token, remember = false) {
+  const persistence = remember ? `; Max-Age=${SESSION_TTL}` : "";
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax${persistence}`;
 }
 
 function clearSessionCookie() {
@@ -177,7 +178,7 @@ async function currentUser(env, request) {
   const tokenHash = await sha256(token);
   const now = Math.floor(Date.now() / 1000);
   const user = await env.DB.prepare(`
-    SELECT u.id, u.email, u.display_name AS displayName, u.created_at AS createdAt, s.id AS sessionId
+    SELECT u.id, u.email, u.username, u.display_name AS displayName, u.birth_date AS birthDate, u.created_at AS createdAt, s.id AS sessionId
     FROM sw_sessions s
     JOIN sw_users u ON u.id = s.user_id
     WHERE s.token_hash = ? AND s.expires_at > ?
@@ -198,7 +199,14 @@ async function accountPayload(env, user) {
     ORDER BY p.name ASC
   `).bind(user.id, now).all();
   return {
-    user: { id: user.id, email: user.email, displayName: user.displayName, createdAt: user.createdAt },
+    user: {
+      id: user.id,
+      email: String(user.email || "").endsWith("@identity.swcreate.invalid") ? null : user.email,
+      username: user.username || user.displayName,
+      displayName: user.displayName,
+      birthDate: user.birthDate || null,
+      createdAt: user.createdAt,
+    },
     entitlements: rows.results || [],
   };
 }
@@ -247,21 +255,27 @@ async function recordProductActivity(env, request) {
 async function register(env, request) {
   await rateLimit(env, request, "register", 6, 60 * 60);
   const body = await parseBody(request);
-  const email = String(body.email || "").trim().toLowerCase();
-  const displayName = String(body.displayName || "").trim();
+  const username = String(body.username || "").trim();
   const password = String(body.password || "");
-  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) return json(request, { error: "Geçerli bir e-posta adresi gir." }, 400);
-  if (displayName.length < 2 || displayName.length > 48) return json(request, { error: "Görünen ad 2–48 karakter olmalı." }, 400);
+  const passwordRepeat = String(body.passwordRepeat || "");
+  const birthDate = String(body.birthDate || "").trim();
+  const remember = body.remember === true;
+  if (!/^[A-Za-z0-9._-]{3,32}$/.test(username)) return json(request, { error: "Kullanıcı adı 3–32 karakter olmalı; yalnızca harf, rakam, nokta, tire ve alt çizgi kullanılabilir." }, 400);
   if (password.length < 10 || password.length > 200) return json(request, { error: "Şifre en az 10 karakter olmalı." }, 400);
-  const exists = await env.DB.prepare("SELECT id FROM sw_users WHERE email = ? LIMIT 1").bind(email).first();
-  if (exists) return json(request, { error: "Bu e-posta zaten bir SW hesabına bağlı." }, 409);
+  if (password !== passwordRepeat) return json(request, { error: "Şifreler aynı değil." }, 400);
+  const birth = new Date(`${birthDate}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) || Number.isNaN(birth.getTime()) || birth > new Date() || birth.getUTCFullYear() < 1900) return json(request, { error: "Geçerli bir doğum tarihi gir." }, 400);
+  const exists = await env.DB.prepare("SELECT id FROM sw_users WHERE lower(username) = lower(?) LIMIT 1").bind(username).first();
+  if (exists) return json(request, { error: "Bu kullanıcı adı zaten kullanılıyor." }, 409);
 
   const now = Math.floor(Date.now() / 1000);
   const userId = crypto.randomUUID();
+  const email = `sw-${userId}@identity.swcreate.invalid`;
+  const displayName = username;
   const salt = randomHex(18);
   const digest = await passwordDigest(password, salt, env.AUTH_PEPPER);
   await env.DB.batch([
-    env.DB.prepare("INSERT INTO sw_users (id, email, display_name, password_hash, password_salt, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(userId, email, displayName, digest, salt, now, now),
+    env.DB.prepare("INSERT INTO sw_users (id, email, username, display_name, birth_date, password_hash, password_salt, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(userId, email, username, displayName, birthDate, digest, salt, now, now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('play-streamers', 'Play Streamers', 'play-streamers', 'active', ?)").bind(now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('play-connect', 'Play Connect', 'play-connect', 'active', ?)").bind(now),
     env.DB.prepare("INSERT OR IGNORE INTO sw_products (id, name, slug, status, created_at) VALUES ('sw-create', 'SW Create', 'sw-create', 'active', ?)").bind(now),
@@ -270,20 +284,22 @@ async function register(env, request) {
     env.DB.prepare("INSERT INTO sw_entitlements (id, user_id, product_id, tier, source, starts_at, created_at, updated_at) VALUES (?, ?, 'sw-create', 'free', 'registration', ?, ?, ?)").bind(crypto.randomUUID(), userId, now, now, now),
   ]);
   const token = await createSession(env, userId);
-  return json(request, await accountPayload(env, { id: userId, email, displayName, createdAt: now }), 201, sessionCookie(token));
+  return json(request, await accountPayload(env, { id: userId, email, username, displayName, birthDate, createdAt: now }), 201, sessionCookie(token, remember));
 }
 
 async function login(env, request) {
   await rateLimit(env, request, "login", 12, 15 * 60);
   const body = await parseBody(request);
-  const email = String(body.email || "").trim().toLowerCase();
+  const identity = String(body.identity || "").trim().toLowerCase();
   const password = String(body.password || "");
-  const user = await env.DB.prepare("SELECT id, email, display_name AS displayName, password_hash AS passwordHash, password_salt AS passwordSalt, created_at AS createdAt FROM sw_users WHERE email = ? LIMIT 1")
-    .bind(email).first();
+  const remember = body.remember === true;
+  const user = await env.DB.prepare("SELECT id, email, username, display_name AS displayName, birth_date AS birthDate, password_hash AS passwordHash, password_salt AS passwordSalt, created_at AS createdAt FROM sw_users WHERE lower(email) = ? OR lower(username) = ? LIMIT 1")
+    .bind(identity, identity).first();
+  if (!user) return json(request, { error: "Hesap mevcut değil." }, 404);
   const candidate = await passwordDigest(password || "invalid-password", user?.passwordSalt || "invalid-salt", env.AUTH_PEPPER);
-  if (!user || !safeEqual(candidate, user.passwordHash)) return json(request, { error: "E-posta veya şifre hatalı." }, 401);
+  if (!safeEqual(candidate, user.passwordHash)) return json(request, { error: "E-posta, kullanıcı adı veya şifre hatalı." }, 401);
   const token = await createSession(env, user.id);
-  return json(request, await accountPayload(env, user), 200, sessionCookie(token));
+  return json(request, await accountPayload(env, user), 200, sessionCookie(token, remember));
 }
 
 async function logout(env, request) {
@@ -294,11 +310,13 @@ async function logout(env, request) {
 
 async function updateProfile(env, request, user) {
   const body = await parseBody(request);
-  const displayName = String(body.displayName || "").trim();
-  if (displayName.length < 2 || displayName.length > 48) return json(request, { error: "Görünen ad 2–48 karakter olmalı." }, 400);
+  const username = String(body.username || "").trim();
+  if (!/^[A-Za-z0-9._-]{3,32}$/.test(username)) return json(request, { error: "Kullanıcı adı 3–32 karakter olmalı." }, 400);
+  const exists = await env.DB.prepare("SELECT id FROM sw_users WHERE lower(username) = lower(?) AND id != ? LIMIT 1").bind(username, user.id).first();
+  if (exists) return json(request, { error: "Bu kullanıcı adı zaten kullanılıyor." }, 409);
   const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare("UPDATE sw_users SET display_name = ?, updated_at = ? WHERE id = ?").bind(displayName, now, user.id).run();
-  return json(request, await accountPayload(env, { ...user, displayName }));
+  await env.DB.prepare("UPDATE sw_users SET username = ?, display_name = ?, updated_at = ? WHERE id = ?").bind(username, username, now, user.id).run();
+  return json(request, await accountPayload(env, { ...user, username, displayName: username }));
 }
 
 function oauthProviderConfig(env, provider, origin) {
@@ -331,7 +349,9 @@ async function beginOAuth(env, request, provider) {
   const config = oauthProviderConfig(env, provider, url.origin);
   if (!config) return accountRedirect({ oauth_error: "configuration" });
 
-  const state = randomHex(32);
+  const mode = url.searchParams.get("mode") === "register" ? "register" : "login";
+  const remember = url.searchParams.get("remember") === "1" ? "1" : "0";
+  const state = `${mode}.${remember}.${randomHex(32)}`;
   const verifier = randomHex(32);
   const now = Math.floor(Date.now() / 1000);
   await env.DB.batch([
@@ -405,28 +425,31 @@ async function grantDefaultProducts(env, userId, source, now) {
   ]);
 }
 
-async function oauthUser(env, provider, profile) {
+async function oauthUser(env, provider, profile, allowCreate) {
   const now = Math.floor(Date.now() / 1000);
   let user = await env.DB.prepare(`
-    SELECT u.id, u.email, u.display_name AS displayName, u.created_at AS createdAt
+    SELECT u.id, u.email, u.username, u.display_name AS displayName, u.birth_date AS birthDate, u.created_at AS createdAt
     FROM sw_oauth_identities i JOIN sw_users u ON u.id = i.user_id
     WHERE i.provider = ? AND i.provider_user_id = ? LIMIT 1
   `).bind(provider, profile.id).first();
 
   if (!user && profile.email) {
-    user = await env.DB.prepare("SELECT id, email, display_name AS displayName, created_at AS createdAt FROM sw_users WHERE lower(email) = lower(?) LIMIT 1")
+    user = await env.DB.prepare("SELECT id, email, username, display_name AS displayName, birth_date AS birthDate, created_at AS createdAt FROM sw_users WHERE lower(email) = lower(?) LIMIT 1")
       .bind(profile.email).first();
   }
 
+  if (!user && !allowCreate) throw new Error("ACCOUNT_MISSING");
   if (!user) {
     const userId = crypto.randomUUID();
     const salt = randomHex(18);
     const digest = await passwordDigest(randomHex(32), salt, env.AUTH_PEPPER);
     const email = profile.email || `kick-${profile.id}-${userId.slice(0, 8)}@identity.swcreate.invalid`;
-    await env.DB.prepare("INSERT INTO sw_users (id, email, display_name, password_hash, password_salt, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(userId, email, profile.displayName, digest, salt, profile.email ? now : null, now, now).run();
+    const baseUsername = String(profile.displayName || `${provider}-user`).replace(/[^A-Za-z0-9._-]/g, "").slice(0, 20) || `${provider}user`;
+    const username = `${baseUsername}-${userId.slice(0, 6)}`;
+    await env.DB.prepare("INSERT INTO sw_users (id, email, username, display_name, password_hash, password_salt, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(userId, email, username, profile.displayName, digest, salt, profile.email ? now : null, now, now).run();
     await grantDefaultProducts(env, userId, `oauth:${provider}`, now);
-    user = { id: userId, email, displayName: profile.displayName, createdAt: now };
+    user = { id: userId, email, username, displayName: profile.displayName, birthDate: null, createdAt: now };
   }
 
   await env.DB.prepare(`
@@ -450,11 +473,13 @@ async function finishOAuth(env, request, provider) {
   try {
     const accessToken = await oauthToken(config, code, savedState.codeVerifier);
     const profile = await oauthProfile(provider, accessToken);
-    const user = await oauthUser(env, provider, profile);
+    const [mode = "login", rememberFlag = "0"] = state.split(".");
+    const user = await oauthUser(env, provider, profile, mode === "register");
     const token = await createSession(env, user.id);
-    return accountRedirect({ oauth: "success" }, sessionCookie(token));
+    return accountRedirect({ oauth: "success" }, sessionCookie(token, rememberFlag === "1"));
   } catch (error) {
     console.error("SW OAuth error", provider, error instanceof Error ? error.message : "unknown");
+    if (error instanceof Error && error.message === "ACCOUNT_MISSING") return accountRedirect({ oauth_error: "account_missing" });
     return accountRedirect({ oauth_error: error instanceof Error && error.message === "PROFILE" ? "profile" : "failed" });
   }
 }

@@ -4,11 +4,14 @@ import { BrandSite } from "../app/ui/BrandSite";
 import "../app/globals.css";
 import "../app/brand-character.css";
 import { AccountPage } from "./AccountPage";
+import { MemberPage } from "./MemberPage";
 import { LegalPage } from "./LegalPage";
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
 const page = path.endsWith("/account")
   ? <AccountPage />
+  : path.endsWith("/center")
+    ? <MemberPage />
   : path.endsWith("/privacy")
     ? <LegalPage kind="privacy" />
     : path.endsWith("/terms")

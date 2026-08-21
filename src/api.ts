@@ -3,8 +3,10 @@ export const API_BASE = (import.meta.env.VITE_SW_API_URL || "https://api.swcreat
 export type SwAccount = {
   user: {
     id: string;
-    email: string;
+    email: string | null;
+    username: string;
     displayName: string;
+    birthDate?: string | null;
     createdAt: number;
   };
   entitlements: Array<{

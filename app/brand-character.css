@@ -470,3 +470,79 @@
   .sw-character-site .edition-copy { background:none; }
   .sw-character-site .hero::before { display:none; }
 }
+
+/* Final SW Create home composition: stable surfaces and deliberately subtle signal motion. */
+html { scroll-behavior:auto; }
+.sw-character-site .site-transition { display:none !important; }
+.sw-character-site .brand-mark::after { content:none !important; animation:none !important; }
+.sw-character-site .hero-copy,
+.sw-character-site .section-heading,
+.sw-character-site .studio-statement,
+.sw-character-site .edition-copy { background:none !important; }
+.sw-character-site .hero,
+.sw-character-site .products-section,
+.sw-character-site .studio-section,
+.sw-character-site .edition-section,
+.sw-character-site .closing-section { background-color:#05070b; }
+.sw-character-site .hero-core {
+  position:absolute;
+  top:clamp(92px,8vw,126px);
+  right:clamp(-28px,2.6vw,52px);
+}
+.sw-character-site .core-brand-name,
+.sw-character-site .core-product-name {
+  padding:6px 10px;
+  border:1px solid transparent;
+  border-radius:999px;
+  transition:color .18s ease,border-color .18s ease,background .18s ease;
+}
+.sw-character-site .core-brand-name:hover,
+.sw-character-site .core-brand-name:focus-visible,
+.sw-character-site .core-product-name:hover,
+.sw-character-site .core-product-name:focus-visible {
+  color:#fff;
+  border-color:rgba(3,224,209,.52);
+  background:rgba(3,224,209,.08);
+  outline:0;
+}
+.sw-character-site .studio-logo-mark::after { content:none !important; }
+.sw-character-site .studio-logo-mark {
+  animation:studio-logo-orbit 13s linear infinite;
+  filter:drop-shadow(0 0 18px rgba(3,224,209,.2));
+}
+.sw-character-site .studio-logo-mark::before {
+  border-color:rgba(3,224,209,.52);
+  box-shadow:0 0 24px rgba(48,69,255,.18);
+}
+.sw-character-site .footer-identity p,
+.sw-character-site .footer-links a,
+.sw-character-site .footer-privacy p { font-size:clamp(15px,1.05vw,17px); line-height:1.7; color:#c9c4b8; }
+.sw-character-site .footer-links strong,
+.sw-character-site .footer-privacy strong { font-size:clamp(13px,.9vw,15px); letter-spacing:.1em; }
+.sw-character-site .footer-copyright { font-size:13px; color:#a9a397; }
+
+/* Pixel fragments should read as rare signal noise, not as a repeated overlay. */
+.sw-character-site .sw-dual-core-pixels i {
+  width:2.8%;
+  border-radius:1px;
+  animation-name:sw-core-pixel-flicker-natural;
+  animation-duration:8.8s;
+  animation-timing-function:steps(1,end);
+}
+@keyframes sw-core-pixel-flicker-natural {
+  0%,84%,100% { opacity:0; transform:translate(0) scale(.35); }
+  85% { opacity:.22; transform:translate(-3px,1px) scale(.7); }
+  86% { opacity:.78; transform:translate(4px,-1px) scale(1); }
+  87% { opacity:.18; transform:translate(-1px,2px) scale(.55); }
+  88% { opacity:0; transform:translate(0) scale(.35); }
+}
+
+@media (max-width:960px) {
+  .sw-character-site .hero-core { top:clamp(320px,44vw,390px); right:50%; width:min(86vw,620px); transform:translateX(50%); }
+}
+@media (max-width:640px) {
+  .sw-character-site .hero-core { top:355px; width:min(108vw,590px); }
+  .sw-character-site .footer-identity p,
+  .sw-character-site .footer-links a,
+  .sw-character-site .footer-privacy p { font-size:15px; }
+}

@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ImgHTMLAttributes, MouseEvent, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { SwDualCore } from "./SwDualCore";
 
@@ -65,8 +65,6 @@ const languages = [
 ] as const;
 
 type Language = typeof languages[number][0];
-type TransitionMode = "idle" | "slide" | "identity";
-
 const localizedHero: Record<Language, { products: string; method: string; edition: string; account: string; eyebrow: string; title: [string, string, string]; lead: string; action: string; enter: string }> = {
   tr: { products: "Ürünler", method: "SW yönetimi", edition: "SW üyeliği", account: "SW hesabı", eyebrow: "BAĞIMSIZ TEKNOLOJİ STÜDYOSU", title: ["FİKRİN", "KENDİ ÇEKİM", "ALANI OLSUN."], lead: "Yaratıcıların ve dijital toplulukların etrafında dönen karakterli ürünler tasarlıyor, geliştiriyor ve büyütüyoruz.", action: "Sinyali takip et", enter: "SW merkezine gir" },
   en: { products: "Products", method: "SW method", edition: "Edition", account: "SW account", eyebrow: "INDEPENDENT TECHNOLOGY STUDIO", title: ["GIVE YOUR", "IDEA ITS OWN", "GRAVITY."], lead: "We design, build and grow distinctive products around creators and digital communities.", action: "Follow the signal", enter: "Enter SW center" },
@@ -91,38 +89,14 @@ export function BrandSite() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("tr");
-  const [transitionMode, setTransitionMode] = useState<TransitionMode>("idle");
   const [systemStats, setSystemStats] = useState({ activeUsers: "—", registeredAccounts: "—", activeProducts: "—" });
   const cursorOrbitRef = useRef<HTMLDivElement>(null);
-  const transitionTimerRef = useRef<number>(0);
   const ui = localizedHero[language];
   const activeLanguage = languages.find(([code]) => code === language) ?? languages[0];
 
   useEffect(() => {
     const saved = window.localStorage.getItem("sw-language") as Language | null;
     if (saved && languages.some(([code]) => code === saved)) setLanguage(saved);
-  }, []);
-
-  useEffect(() => {
-    const resetTransition = () => {
-      window.clearTimeout(transitionTimerRef.current);
-      setTransitionMode("idle");
-    };
-    const resetWhenVisible = () => {
-      if (document.visibilityState === "visible") resetTransition();
-    };
-    resetTransition();
-    window.addEventListener("pageshow", resetTransition);
-    window.addEventListener("pagehide", resetTransition);
-    window.addEventListener("popstate", resetTransition);
-    document.addEventListener("visibilitychange", resetWhenVisible);
-    return () => {
-      window.removeEventListener("pageshow", resetTransition);
-      window.removeEventListener("pagehide", resetTransition);
-      window.removeEventListener("popstate", resetTransition);
-      document.removeEventListener("visibilitychange", resetWhenVisible);
-      window.clearTimeout(transitionTimerRef.current);
-    };
   }, []);
 
   useEffect(() => {
@@ -163,26 +137,6 @@ export function BrandSite() {
     };
   }, []);
 
-  function animatedNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    setMenuOpen(false);
-    setLanguageOpen(false);
-    const mode: TransitionMode = href.startsWith("#") ? "slide" : "identity";
-    setTransitionMode(mode);
-    window.clearTimeout(transitionTimerRef.current);
-    transitionTimerRef.current = window.setTimeout(() => {
-      if (href.startsWith("#")) {
-        document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
-        window.history.replaceState(null, "", href);
-        transitionTimerRef.current = window.setTimeout(() => setTransitionMode("idle"), 520);
-      } else {
-        window.location.assign(href);
-        transitionTimerRef.current = window.setTimeout(() => setTransitionMode("idle"), 1800);
-      }
-    }, mode === "identity" ? 560 : 250);
-  }
-
   function chooseLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
     setLanguageOpen(false);
@@ -216,10 +170,6 @@ export function BrandSite() {
   return (
     <main className="site-shell sw-character-site" dir={language === "ar" ? "rtl" : "ltr"}>
       <div ref={cursorOrbitRef} className="cursor-orbit" aria-hidden="true" />
-      <div className={`site-transition ${transitionMode !== "idle" ? `active ${transitionMode}` : ""}`} aria-hidden="true">
-        {transitionMode === "identity" && <SwDualCore className="transition-core" label="" />}
-        <span>SW CREATE</span><i />
-      </div>
 
       <header className="topbar">
         <Link className="brand" href="#top" aria-label="SW Create ana sayfa">
@@ -229,16 +179,16 @@ export function BrandSite() {
         <span className="topbar-signal" aria-hidden="true"><i /> SW CREATE · BAĞIMSIZ DİJİTAL STÜDYO</span>
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label="Menüyü aç veya kapat"><span /> <span /></button>
         <nav className={menuOpen ? "nav-links open" : "nav-links"} aria-label="Ana menü">
-          <a href="#products" onClick={(event) => animatedNavigation(event, "#products")}>{ui.products}</a>
-          <a href="#studio" onClick={(event) => animatedNavigation(event, "#studio")}>{ui.method}</a>
-          <a href="#edition" onClick={(event) => animatedNavigation(event, "#edition")}>{ui.edition}</a>
+          <a href="#products" onClick={() => setMenuOpen(false)}>{ui.products}</a>
+          <a href="#studio" onClick={() => setMenuOpen(false)}>{ui.method}</a>
+          <a href="#edition" onClick={() => setMenuOpen(false)}>{ui.edition}</a>
           <div className="language-control">
             <button type="button" className="language-button" onClick={() => setLanguageOpen(!languageOpen)} aria-expanded={languageOpen} aria-label="Dil seçimi"><img src={activeLanguage[1]} alt="" /><span>{language.toUpperCase()}</span></button>
             {languageOpen && <div className="language-menu" role="menu" aria-label="Dil seçimi">
               {languages.map(([code, flag, label]) => <button type="button" key={code} className={language === code ? "active" : ""} onClick={() => chooseLanguage(code)} role="menuitem"><img src={flag} alt="" />{label}</button>)}
             </div>}
           </div>
-          <Link className="nav-account identity-link" href="/account" onClick={(event) => animatedNavigation(event, "/account")}>{ui.account} <span>↗</span></Link>
+          <Link className="nav-account identity-link" href="/account/">{ui.account} <span>↗</span></Link>
         </nav>
       </header>
 
@@ -249,8 +199,8 @@ export function BrandSite() {
           <h1>{ui.title[0]}<br /><em>{ui.title[1]}</em><br />{ui.title[2]}</h1>
           <p className="hero-lead">{ui.lead}</p>
           <div className="hero-actions">
-            <a className="button button-light slide-link" href="#products" onClick={(event) => animatedNavigation(event, "#products")}>{ui.action} <span>↓</span></a>
-            <Link className="text-link identity-link" href="/account" onClick={(event) => animatedNavigation(event, "/account")}>{ui.enter} <span>↗</span></Link>
+            <a className="button button-light slide-link" href="#products">{ui.action} <span>↓</span></a>
+            <Link className="text-link identity-link" href="/account/">{ui.enter} <span>↗</span></Link>
           </div>
         </div>
         <div className="hero-core" aria-label="SW Create ürün çekirdeği">
@@ -258,8 +208,8 @@ export function BrandSite() {
           <div className="orbit orbit-two" aria-hidden="true" />
           <div className="orbit orbit-three" aria-hidden="true" />
           <div className="core-image"><SwDualCore className="core-logo-shell" /></div>
-          <div className="core-brand-name">SW CREATE</div>
-          <div className="core-product-name">PLAY STREAMERS</div>
+          <a className="core-brand-name" href="https://swcreate.com" aria-label="SW Create ana sayfası">SW CREATE</a>
+          <a className="core-product-name" href="https://pstreamers.com" target="_blank" rel="noreferrer" aria-label="Play Streamers sitesini aç">PLAY STREAMERS</a>
         </div>
       </section>
 
@@ -304,16 +254,16 @@ export function BrandSite() {
         <div className="edition-badge">SW CREATE EDITION</div>
         <div className="edition-copy"><p className="section-number">TEK PASAPORT</p><h2>BİR KİMLİK.<br />BÜTÜN <span>PRO</span> YÖRÜNGESİ.</h2><p>SW Create Edition; SW Create çatısı altındaki ürünlerin avantajlarını, erken erişimleri ve özel topluluk ayrıcalıklarını tek üyelikte buluşturur.</p></div>
         <div className="plan-grid plan-grid-three">
-          <article className="plan-card"><span>SW CREATE FREE</span><h3>Ücretsiz merkez hesabı</h3><strong>₺0</strong><ul><li>Temel ürün özellikleri</li><li>Standart veri aralığı</li><li>Topluluk desteği</li></ul><Link className="identity-link" href="/account?mode=register" onClick={(event) => animatedNavigation(event, "/account?mode=register")}>Ücretsiz hesap oluştur</Link></article>
-          <article className="plan-card pro"><span>SW CREATE PRO EDITION</span><h3>Stüdyo avantajları</h3><strong>YAKINDA</strong><ul><li>Güncellemelere önceden erişim</li><li>Özel Discord rolü ve hızlı destek</li><li>Yeni gelir araçlarına erken erişim</li></ul><Link className="identity-link" href="/account?plan=pro" onClick={(event) => animatedNavigation(event, "/account?plan=pro")}>Pro listesine katıl</Link></article>
-          <article className="plan-card edition"><span>SW CREATE PRODUCT PRO EDITION</span><h3>Bütün ürünlerin Pro erişimi</h3><strong>YAKINDA</strong><ul><li>Tüm SW ürünlerinde Pro</li><li>Yeni ürünlere erken erişim</li><li>Öncelikli ürün desteği</li></ul><Link className="identity-link" href="/account?plan=edition" onClick={(event) => animatedNavigation(event, "/account?plan=edition")}>Edition listesine katıl</Link></article>
+          <article className="plan-card"><span>SW CREATE FREE</span><h3>Ücretsiz merkez hesabı</h3><strong>₺0</strong><ul><li>Temel ürün özellikleri</li><li>Standart veri aralığı</li><li>Topluluk desteği</li></ul><Link className="identity-link" href="/account/?mode=register">Ücretsiz hesap oluştur</Link></article>
+          <article className="plan-card pro"><span>SW CREATE PRO EDITION</span><h3>Stüdyo avantajları</h3><strong>YAKINDA</strong><ul><li>Güncellemelere önceden erişim</li><li>Özel Discord rolü ve hızlı destek</li><li>Yeni gelir araçlarına erken erişim</li></ul><Link className="identity-link" href="/account/?plan=pro">Pro listesine katıl</Link></article>
+          <article className="plan-card edition"><span>SW CREATE PRODUCT PRO EDITION</span><h3>Bütün ürünlerin Pro erişimi</h3><strong>YAKINDA</strong><ul><li>Tüm SW ürünlerinde Pro</li><li>Yeni ürünlere erken erişim</li><li>Öncelikli ürün desteği</li></ul><Link className="identity-link" href="/account/?plan=edition">Edition listesine katıl</Link></article>
         </div>
       </section>
 
-      <section className="closing-section"><p>Bir sonraki ürünün<br />çekim alanına gir.</p><Link className="identity-link" href="/account?mode=register" onClick={(event) => animatedNavigation(event, "/account?mode=register")}>SW hesabını oluştur <span>↗</span></Link></section>
+      <section className="closing-section"><p>Bir sonraki ürünün<br />çekim alanına gir.</p><Link className="identity-link" href="/account/?mode=register">SW hesabını oluştur <span>↗</span></Link></section>
 
       <footer className="site-footer">
-        <div className="footer-identity"><Link className="brand footer-brand" href="#top"><Image src="/brand/swcreate-logo.png" alt="" width={44} height={44} /> SW CREATE</Link><p>Bağımsız fikirler için karakterli dijital ürünler.</p></div>
+        <div className="footer-identity"><Link className="brand footer-brand" href="#top" aria-label="Sayfanın başına dön"><Image src="/brand/swcreate-logo.png" alt="" width={52} height={52} /></Link><p>Bağımsız fikirler için karakterli dijital ürünler.</p></div>
         <div className="footer-links"><strong>SW CREATE</strong><Link href="#products">Ürünler</Link><Link href="#studio">SW yönetimi</Link><Link href="#edition">SW Create Edition</Link></div>
         <div className="footer-links"><strong>GÜVEN</strong><Link href="/privacy">Gizlilik</Link><Link href="/terms">Koşullar</Link><a href="mailto:swcreate.info@gmail.com">İletişim</a></div>
         <div className="footer-privacy"><span className="pulse-dot" /><strong>GİZLİLİK ÖNCELİKLİ</strong><p>Kimlik ve erişim verilerin yalnızca seçtiğin SW ürünlerini çalıştırmak için kullanılır.</p></div>

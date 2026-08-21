@@ -27,10 +27,11 @@ koda ya da GitHub'a eklenmemelidir.
 ## Veritabanı
 
 İlk D1 şeması `drizzle/0000_swcreate_identity.sql` dosyasındadır. Üretimde bir
-kez uygulanır. Siteler barındırması D1 bağlamasını `DB` adıyla sağlar.
+kez uygulanır. Cloudflare Worker D1 bağlamasını `DB` adıyla kullanır.
 
 ## Alan adı
 
 Canlı ana alan `swcreate.com`, tercih edilen yönlendirme `www.swcreate.com` →
-`https://swcreate.com` şeklindedir. Dağıtım sonrası Sites alan adı ekranında
-verilen doğrulama DNS kayıtları Cloudflare DNS'e eklenir.
+`https://swcreate.com` şeklindedir. Arayüz `.github/workflows/pages.yml` ile
+GitHub Pages'e yayınlanır; hesap API'si `https://api.swcreate.com` adresindeki
+Cloudflare Worker üzerinde çalışır.

@@ -4,20 +4,20 @@
 
 | Adres | Hedef |
 |---|---|
-| `https://swcreate.com` | SW Create marka sitesi ve hesap sistemi |
+| `https://swcreate.com` | GitHub Pages üzerindeki SW Create marka sitesi ve hesap arayüzü |
 | `https://www.swcreate.com` | `https://swcreate.com` adresine kalıcı yönlendirme |
-| `https://swcreate.com/api/*` | Aynı dağıtımdaki güvenli API rotaları |
+| `https://api.swcreate.com` | Cloudflare Worker üzerindeki güvenli hesap ve ürün API'si |
 
 ## Cloudflare DNS
 
 1. Cloudflare'da `swcreate.com` alanını aç.
-2. Sites dağıtımı tamamlandıktan sonra alan adı bağlantı sonucunda verilen apex
-   A kayıtlarını kök alan adına (`@`) ekle.
-3. `www` için bağlantı sonucunda verilen CNAME hedefini ekle.
-4. Sites tarafından verilen doğrulama TXT/CNAME kayıtlarını eksiksiz ekle.
+2. GitHub Pages için kök alan adına (`@`) GitHub'ın dört apex A kaydını ekle.
+3. `www` için `Switly01.github.io` hedefli CNAME kaydı ekle.
+4. Depodaki `public/CNAME` dosyasının yalnızca `swcreate.com` içerdiğini koru.
 5. Eski bir `@` A/AAAA/CNAME veya `www` CNAME kaydı aynı adresi kullanıyorsa
    önce hedefini doğrula; çakışan kayıt bırakma.
-6. SSL durumu `active` olmadan mevcut kayıtları tekrar değiştirme.
+6. GitHub → Settings → Pages bölümünde kaynak olarak **GitHub Actions** seçili
+   olmalı. SSL durumu etkinleşmeden DNS kayıtlarını tekrar değiştirme.
 
 ## Yönlendirme
 
@@ -28,14 +28,14 @@ Cloudflare → Rules → Redirect Rules bölümünde:
 - Durum: `301`
 - Sorgu dizesini koru: açık
 
-## Secret
+## Worker secret'ı
 
-Barındırma ortamına en az 48 bayt rastgele üretilmiş `AUTH_PEPPER` secret'ı ekle.
+Cloudflare Worker'a en az 48 bayt rastgele üretilmiş `AUTH_PEPPER` secret'ı ekle.
 Bu değer GitHub'a veya istemci koduna konulmaz.
 
 ## Kontrol
 
 - `https://swcreate.com`
 - `https://www.swcreate.com` ana alana yönleniyor mu
-- `https://swcreate.com/api/health` 200 ve `database: connected` dönüyor mu
+- `https://api.swcreate.com/api/health` 200 ve `database: connected` dönüyor mu
 - kayıt, giriş, yenileme sonrası oturum ve çıkış akışları çalışıyor mu
