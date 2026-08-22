@@ -739,7 +739,7 @@ async function supportTicketPayload(env, userId, ticketId = null) {
     attachmentGroups.get(attachment.messageId).push({ ...attachment, url: `/api/support/attachments/${attachment.id}` });
   }
   const grouped = new Map(tickets.map((ticket) => [ticket.id, []]));
-  for (const message of messages.results || []) grouped.get(message.ticketId)?.push({ id: message.id, sender: message.sender, body: message.body, createdAt: message.createdAt, attachments: attachmentGroups.get(message.id) || [] });
+  for (const message of messages.results || []) grouped.get(message.ticketId)?.push({ id: message.id, sender: message.sender, body: message.sender === "support" ? cleanSupportReply(message.body) : message.body, createdAt: message.createdAt, attachments: attachmentGroups.get(message.id) || [] });
   return tickets.map((ticket) => ({ ...ticket, messages: grouped.get(ticket.id) || [] }));
 }
 
