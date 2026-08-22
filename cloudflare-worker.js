@@ -1,10 +1,12 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.5.0";
-const SW_IDENTITY_RELEASED_AT = 1787328000;
+const SW_IDENTITY_VERSION = "1.6.0";
+const SW_IDENTITY_RELEASED_AT = 1787414400;
 const EMAIL_CODE_TTL = 10 * 60;
 const EMAIL_CODE_RESEND = 40;
+const REMEMBERED_LOGIN_TTL = 30 * 24 * 60 * 60;
+const PRODUCT_HANDOFF_TTL = 2 * 60;
 const SUPPORT_RECIPIENT = "swcreate.info@gmail.com";
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
@@ -113,6 +115,13 @@ function accountRedirect(params = {}, cookie) {
   const target = new URL(ACCOUNT_URL);
   Object.entries(params).forEach(([key, value]) => target.searchParams.set(key, String(value)));
   return redirect(target.toString(), cookie);
+}
+
+function centerRedirect(params = {}) {
+  const target = new URL("https://swcreate.com/center/");
+  target.searchParams.set("view", "connections");
+  Object.entries(params).forEach(([key, value]) => target.searchParams.set(key, String(value)));
+  return redirect(target.toString());
 }
 
 async function passwordDigest(password, salt, pepper) {
@@ -294,6 +303,47 @@ async function createSession(env, userId, request) {
   return token;
 }
 
+async function rememberedUserAgentHash(env, request) {
+  return sha256(`remembered:${String(request.headers.get("user-agent") || "").slice(0, 400)}:${env.AUTH_PEPPER}`);
+}
+
+async function createRememberedLogin(env, userId, request) {
+  const token = randomHex(32);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM sw_remembered_logins WHERE expires_at <= ?").bind(now),
+    env.DB.prepare(`INSERT INTO sw_remembered_logins
+      (id, user_id, token_hash, user_agent_hash, expires_at, created_at, last_used_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .bind(crypto.randomUUID(), userId, await sha256(token), await rememberedUserAgentHash(env, request), now + REMEMBERED_LOGIN_TTL, now, now),
+  ]);
+  return token;
+}
+
+async function rememberedLogin(env, request) {
+  await rateLimit(env, request, "remembered-login", 15, 15 * 60);
+  const body = await parseBody(request);
+  const supplied = String(body.token || "").trim();
+  if (!/^[a-f0-9]{64}$/i.test(supplied)) return json(request, { error: "Bu cihazdaki hesap anahtarı geçerli değil." }, 401);
+  const now = Math.floor(Date.now() / 1000);
+  const row = await env.DB.prepare(`SELECT r.id AS rememberedId, r.user_agent_hash AS userAgentHash, r.expires_at AS expiresAt,
+      u.id, u.email, u.username, u.display_name AS displayName, u.birth_date AS birthDate, u.created_at AS createdAt,
+      u.two_factor_enabled AS twoFactorEnabled
+    FROM sw_remembered_logins r JOIN sw_users u ON u.id = r.user_id
+    WHERE r.token_hash = ? AND r.expires_at > ? LIMIT 1`).bind(await sha256(supplied), now).first();
+  const agentMatches = row && safeEqual(String(row.userAgentHash), await rememberedUserAgentHash(env, request));
+  if (!row || !agentMatches) {
+    await recordSecurityEvent(env, request, "account.remembered_login", row?.id || null, "denied");
+    return json(request, { error: "Bu cihazdaki hızlı girişin süresi dolmuş. Parolanla yeniden giriş yap." }, 401);
+  }
+  const nextToken = randomHex(32);
+  await env.DB.prepare("UPDATE sw_remembered_logins SET token_hash = ?, expires_at = ?, last_used_at = ? WHERE id = ?")
+    .bind(await sha256(nextToken), now + REMEMBERED_LOGIN_TTL, now, row.rememberedId).run();
+  const session = await createSession(env, row.id, request);
+  await recordSecurityEvent(env, request, "account.remembered_login", row.id);
+  return json(request, { ...(await accountPayload(env, row)), rememberedLoginToken: nextToken }, 200, sessionCookie(session, true));
+}
+
 async function currentUser(env, request) {
   const token = readCookie(request, SESSION_COOKIE);
   if (!token) return null;
@@ -360,7 +410,7 @@ async function accountPayload(env, user) {
     },
     connections: [
       { provider: "sw-create", label: "SW Create", connected: true, detail: "Merkezi SW Identity hesabı" },
-      { provider: "play-streamers", label: "Play Streamers", connected: entitlementSlugs.has("play-streamers"), detail: entitlementSlugs.has("play-streamers") ? "Ürün erişimi bağlı" : "Henüz ürün erişimi yok" },
+      { provider: "play-streamers", label: "Play Streamers", connected: false, detail: entitlementSlugs.has("play-streamers") ? "Ürün erişimi hazır · SW giriş bağlantısı yakında" : "SW giriş bağlantısı yakında" },
       { provider: "google", label: "Google", connected: connectedProviders.has("google"), detail: connectedProviders.has("google") ? "Giriş sağlayıcısı bağlı" : "Bağlı değil" },
       { provider: "kick", label: "Kick", connected: connectedProviders.has("kick"), detail: connectedProviders.has("kick") ? "Giriş sağlayıcısı bağlı" : "Bağlı değil" },
     ],
@@ -379,6 +429,54 @@ async function planCatalog(env, request, user) {
       FROM sw_subscriptions WHERE user_id = ?`).bind(user.id).all(),
   ]);
   return json(request, { plans: plans.results || [], subscriptions: subscriptions.results || [] });
+}
+
+function validProductRedirect(clientId, value) {
+  try {
+    const target = new URL(String(value || ""));
+    return clientId === "play-streamers" && target.protocol === "https:" && (target.origin === "https://pstreamers.com" || target.origin === "https://www.pstreamers.com");
+  } catch { return false; }
+}
+
+async function authorizeProductLogin(env, request, user) {
+  await rateLimit(env, request, "product-sso-authorize", 12, 15 * 60, user.id);
+  const url = new URL(request.url);
+  const clientId = String(url.searchParams.get("client_id") || "");
+  const redirectUri = String(url.searchParams.get("redirect_uri") || "");
+  const state = String(url.searchParams.get("state") || "");
+  if (!validProductRedirect(clientId, redirectUri) || !state || state.length > 200) return json(request, { error: "Ürün giriş isteği geçerli değil." }, 400);
+  if (!env.SW_PRODUCT_SSO_SECRET) return json(request, { error: "Play Streamers SW giriş köprüsü henüz etkinleştirilmedi." }, 503);
+  const code = randomHex(32);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM sw_product_handoffs WHERE expires_at <= ? OR consumed_at IS NOT NULL").bind(now),
+    env.DB.prepare(`INSERT INTO sw_product_handoffs (id, user_id, product_id, code_hash, redirect_uri, expires_at, created_at, consumed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`).bind(crypto.randomUUID(), user.id, clientId, await sha256(code), redirectUri, now + PRODUCT_HANDOFF_TTL, now),
+  ]);
+  const target = new URL(redirectUri);
+  target.searchParams.set("code", code);
+  target.searchParams.set("state", state);
+  await recordSecurityEvent(env, request, "product_sso.authorize", user.id);
+  return redirect(target.toString());
+}
+
+async function exchangeProductLogin(env, request) {
+  const authorization = String(request.headers.get("authorization") || "");
+  if (!env.SW_PRODUCT_SSO_SECRET || !safeEqual(authorization, `Bearer ${env.SW_PRODUCT_SSO_SECRET}`)) return json(request, { error: "Ürün kimliği doğrulanamadı." }, 401);
+  const body = await parseBody(request);
+  const code = String(body.code || "");
+  const clientId = String(body.clientId || "");
+  const redirectUri = String(body.redirectUri || "");
+  if (!/^[a-f0-9]{64}$/i.test(code) || !validProductRedirect(clientId, redirectUri)) return json(request, { error: "Ürün giriş kodu geçerli değil." }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  const row = await env.DB.prepare(`SELECT h.id AS handoffId, h.user_id AS userId, u.email, u.username, u.display_name AS displayName
+    FROM sw_product_handoffs h JOIN sw_users u ON u.id = h.user_id
+    WHERE h.code_hash = ? AND h.product_id = ? AND h.redirect_uri = ? AND h.expires_at > ? AND h.consumed_at IS NULL LIMIT 1`)
+    .bind(await sha256(code), clientId, redirectUri, now).first();
+  if (!row) return json(request, { error: "Ürün giriş kodunun süresi dolmuş veya kod kullanılmış." }, 401);
+  const consumed = await env.DB.prepare("UPDATE sw_product_handoffs SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL").bind(now, row.handoffId).run();
+  if (Number(consumed?.meta?.changes || 0) !== 1) return json(request, { error: "Ürün giriş kodu daha önce kullanılmış." }, 401);
+  return json(request, { ok: true, user: { id: row.userId, email: isPublicEmail(row.email) ? row.email : null, username: row.username, displayName: row.displayName }, identityVersion: SW_IDENTITY_VERSION });
 }
 
 function cleanSupportText(value, minimum, maximum) {
@@ -499,10 +597,57 @@ function cleanSupportReply(value) {
   const lines = String(value || "").replace(/\r\n?/g, "\n").split("\n");
   const kept = [];
   for (const line of lines) {
-    if (/^>/.test(line) || /^On .+ wrote:$/i.test(line) || /^[-_]{2,}\s*(Original Message|İletilen ileti)/i.test(line)) break;
+    const trimmed = line.trim();
+    if (/^>/.test(trimmed)
+      || /^(On\s+)?\S.*\s+wrote:$/i.test(trimmed)
+      || /<[^>]+>,?.*tarihinde şunu yazdı:\s*$/i.test(trimmed)
+      || /tarihinde şunu yazdı:\s*$/i.test(trimmed)
+      || /^[-_]{2,}\s*(Original Message|İletilen ileti|Özgün İleti)/i.test(trimmed)) break;
     kept.push(line);
   }
   return kept.join("\n").trim().slice(0, 4000) || "SW Destek talebini yanıtladı.";
+}
+
+function emailHtmlToText(value) {
+  return String(value || "")
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|blockquote)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&");
+}
+
+async function storeInboundSupportAttachments(env, emailId, metadata, ticket, messageId) {
+  const attachments = Array.isArray(metadata) ? metadata.slice(0, 10) : [];
+  let total = 0;
+  for (const attachment of attachments) {
+    try {
+      const attachmentId = String(attachment?.id || "");
+      if (!/^[a-f0-9-]{20,80}$/i.test(attachmentId)) continue;
+      const detailResponse = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}/attachments/${encodeURIComponent(attachmentId)}`, {
+        headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, accept: "application/json" },
+      });
+      const detail = await detailResponse.json().catch(() => ({}));
+      if (!detailResponse.ok || !detail.download_url) continue;
+      const downloadUrl = new URL(String(detail.download_url));
+      if (downloadUrl.protocol !== "https:" || !(downloadUrl.hostname === "inbound-cdn.resend.com" || downloadUrl.hostname.endsWith(".resend.com"))) continue;
+      const fileResponse = await fetch(downloadUrl.toString());
+      if (!fileResponse.ok) continue;
+      const bytes = await fileResponse.arrayBuffer();
+      if (bytes.byteLength <= 0 || bytes.byteLength > 10 * 1024 * 1024 || total + bytes.byteLength > 25 * 1024 * 1024) continue;
+      total += bytes.byteLength;
+      const file = new File([bytes], safeFileName(detail.filename || attachment.filename || "email-file"), { type: String(detail.content_type || attachment.content_type || "application/octet-stream") });
+      const stored = await storePrivateFile(env, ticket.userId, "support", file);
+      await env.DB.prepare(`INSERT INTO sw_support_attachments
+        (id, ticket_id, message_id, user_id, object_key, file_name, mime_type, size, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), ticket.id, messageId, ticket.userId, stored.id, stored.fileName, stored.mimeType, stored.size, Math.floor(Date.now() / 1000)).run();
+    } catch (error) {
+      console.error("SW support inbound attachment failed", error instanceof Error ? error.message : "unknown");
+    }
+  }
 }
 
 async function verifyResendWebhook(rawBody, headers, secret) {
@@ -532,7 +677,7 @@ async function receiveSupportEmail(env, request) {
   if (!sender || !allowedSenders.has(sender)) return json(request, { ok: true, ignored: true });
   const recipients = Array.isArray(event?.data?.to) ? event.data.to : [];
   const ticketId = recipients.map(supportTicketIdFromEmail).find(Boolean) || supportTicketIdFromEmail(event?.data?.subject);
-  const ticket = ticketId ? await env.DB.prepare("SELECT id FROM sw_support_tickets WHERE id = ? LIMIT 1").bind(ticketId).first() : null;
+  const ticket = ticketId ? await env.DB.prepare("SELECT id, user_id AS userId FROM sw_support_tickets WHERE id = ? LIMIT 1").bind(ticketId).first() : null;
   if (!ticket) return json(request, { ok: true, ignored: true });
   const emailId = String(event?.data?.email_id || "");
   if (!emailId) return json(request, { error: "Gelen e-posta kimliği eksik." }, 400);
@@ -542,14 +687,16 @@ async function receiveSupportEmail(env, request) {
     console.error("SW support inbound read failed", response.status, String(email?.name || email?.message || "unknown"));
     return json(request, { error: response.status === 401 ? "Gelen e-posta anahtarı okuma yetkisine sahip değil." : "Gelen e-posta okunamadı." }, 502);
   }
-  const body = cleanSupportReply(email.text || String(email.html || "").replace(/<[^>]+>/g, " "));
+  const body = cleanSupportReply(email.text || emailHtmlToText(email.html));
   const now = Math.floor(Date.now() / 1000);
+  const messageId = crypto.randomUUID();
   await env.DB.batch([
-    env.DB.prepare("INSERT INTO sw_support_messages (id, ticket_id, sender, body, created_at) VALUES (?, ?, 'support', ?, ?)").bind(crypto.randomUUID(), ticket.id, body, now),
+    env.DB.prepare("INSERT INTO sw_support_messages (id, ticket_id, sender, body, created_at) VALUES (?, ?, 'support', ?, ?)").bind(messageId, ticket.id, body, now),
     env.DB.prepare("UPDATE sw_support_tickets SET status = 'answered', updated_at = ?, last_reply_at = ? WHERE id = ?").bind(now, now, ticket.id),
     env.DB.prepare("INSERT INTO sw_support_webhook_events (event_id, created_at) VALUES (?, ?)").bind(eventId, now),
   ]);
-  return json(request, { ok: true });
+  await storeInboundSupportAttachments(env, emailId, email.attachments || event?.data?.attachments, ticket, messageId);
+  return json(request, { ok: true, attachments: Array.isArray(email.attachments || event?.data?.attachments) ? (email.attachments || event.data.attachments).length : 0 });
 }
 
 async function supportTicketPayload(env, userId, ticketId = null) {
@@ -711,7 +858,8 @@ async function serveSupportAttachment(env, request, user, attachmentId) {
   if (!object) return json(request, { error: "Dosya bulunamadı." }, 404);
   const headers = corsHeaders(request);
   headers.set("content-type", attachment.mimeType || object.mimeType || "application/octet-stream");
-  headers.set("content-disposition", `inline; filename*=UTF-8''${encodeURIComponent(attachment.fileName)}`);
+  const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
+  headers.set("content-disposition", `${disposition}; filename*=UTF-8''${encodeURIComponent(attachment.fileName)}`);
   headers.set("content-length", String(object.size));
   return new Response(object.bytes, { headers });
 }
@@ -842,7 +990,8 @@ async function register(env, request) {
   ]);
   const token = await createSession(env, userId, request);
   await recordSecurityEvent(env, request, "account.register", userId);
-  return json(request, await accountPayload(env, { id: userId, email, username, displayName, birthDate, createdAt: now, twoFactorEnabled: 0 }), 201, sessionCookie(token, remember));
+  const payload = await accountPayload(env, { id: userId, email, username, displayName, birthDate, createdAt: now, twoFactorEnabled: 0 });
+  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, userId, request) }, 201, sessionCookie(token, remember));
 }
 
 async function login(env, request) {
@@ -868,7 +1017,8 @@ async function login(env, request) {
   }
   const token = await createSession(env, user.id, request);
   await recordSecurityEvent(env, request, "account.login", user.id);
-  return json(request, await accountPayload(env, user), 200, sessionCookie(token, remember));
+  const payload = await accountPayload(env, user);
+  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, user.id, request) }, 200, sessionCookie(token, remember));
 }
 
 function base64UrlBytes(value) {
@@ -1034,7 +1184,9 @@ async function verifyTwoFactorLogin(env, request) {
   await env.DB.prepare("DELETE FROM sw_totp_challenges WHERE id = ?").bind(challengeId).run();
   const token = await createSession(env, row.userId, request);
   await recordSecurityEvent(env, request, "account.login.two_factor", row.userId);
-  return json(request, await accountPayload(env, row), 200, sessionCookie(token, Number(row.remember) === 1));
+  const remember = Number(row.remember) === 1;
+  const payload = await accountPayload(env, row);
+  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, row.userId, request) }, 200, sessionCookie(token, remember));
 }
 
 async function beginTotpSetup(env, request, user) {
@@ -1083,6 +1235,25 @@ async function confirmTotpSetup(env, request, user) {
   await env.DB.batch(statements);
   await recordSecurityEvent(env, request, "two_factor.enable", user.id);
   return json(request, { ...(await accountPayload(env, { ...user, twoFactorEnabled: 1 })), recoveryCodes: codes });
+}
+
+async function regenerateRecoveryCodes(env, request, user) {
+  await rateLimit(env, request, "two-factor-recovery-regenerate", 4, 60 * 60, user.id);
+  const body = await parseBody(request);
+  const code = normalizeTwoFactorCode(body.code);
+  if (!code) return json(request, { error: "Authenticator veya mevcut kurtarma kodunu gir." }, 400);
+  const privateUser = await env.DB.prepare("SELECT id, two_factor_enabled AS twoFactorEnabled, totp_secret_ciphertext AS totpSecretCiphertext, totp_last_counter AS totpLastCounter FROM sw_users WHERE id = ? LIMIT 1").bind(user.id).first();
+  if (!privateUser || Number(privateUser.twoFactorEnabled) !== 1) return json(request, { error: "İki aşamalı doğrulama açık değil." }, 400);
+  const verification = await verifyAndConsumeTwoFactor(env, privateUser, code);
+  if (!verification.ok) return json(request, { error: verification.error }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  const codes = recoveryCodes();
+  const statements = [env.DB.prepare("DELETE FROM sw_totp_recovery_codes WHERE user_id = ?").bind(user.id)];
+  for (const recoveryCode of codes) statements.push(env.DB.prepare("INSERT INTO sw_totp_recovery_codes (id, user_id, code_hash, used_at, created_at) VALUES (?, ?, ?, NULL, ?)")
+    .bind(crypto.randomUUID(), user.id, await recoveryCodeHash(env, user.id, recoveryCode), now));
+  await env.DB.batch(statements);
+  await recordSecurityEvent(env, request, "two_factor.recovery.regenerate", user.id);
+  return json(request, { ok: true, recoveryCodes: codes });
 }
 
 async function disableTotp(env, request, user) {
@@ -1214,6 +1385,7 @@ async function updateEmail(env, request, user) {
   await env.DB.batch([
     env.DB.prepare("UPDATE sw_users SET email = ?, email_verified_at = ?, email_changed_at = ?, updated_at = ? WHERE id = ?").bind(newEmail, now, now, now, user.id),
     env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId),
+    env.DB.prepare("DELETE FROM sw_remembered_logins WHERE user_id = ?").bind(user.id),
   ]);
   await recordSecurityEvent(env, request, "account.email.update", user.id);
   return json(request, await accountPayload(env, { ...user, email: newEmail }));
@@ -1235,6 +1407,7 @@ async function updatePassword(env, request, user) {
   await env.DB.batch([
     env.DB.prepare("UPDATE sw_users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?").bind(digest, salt, now, user.id),
     env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId),
+    env.DB.prepare("DELETE FROM sw_remembered_logins WHERE user_id = ?").bind(user.id),
   ]);
   await recordSecurityEvent(env, request, "account.password.update", user.id);
   return json(request, { ok: true });
@@ -1263,6 +1436,7 @@ async function resetForgotPassword(env, request) {
   await env.DB.batch([
     env.DB.prepare("UPDATE sw_users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?").bind(digest, salt, now, user.id),
     env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ?").bind(user.id),
+    env.DB.prepare("DELETE FROM sw_remembered_logins WHERE user_id = ?").bind(user.id),
   ]);
   await recordSecurityEvent(env, request, "account.password.reset", user.id);
   return json(request, { ok: true });
@@ -1287,6 +1461,8 @@ async function deleteAccount(env, request, user) {
     env.DB.prepare("DELETE FROM sw_totp_recovery_codes WHERE user_id = ?").bind(user.id),
     env.DB.prepare("DELETE FROM sw_totp_setups WHERE user_id = ?").bind(user.id),
     env.DB.prepare("DELETE FROM sw_totp_challenges WHERE user_id = ?").bind(user.id),
+    env.DB.prepare("DELETE FROM sw_remembered_logins WHERE user_id = ?").bind(user.id),
+    env.DB.prepare("DELETE FROM sw_product_handoffs WHERE user_id = ?").bind(user.id),
     env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ?").bind(user.id),
     env.DB.prepare("DELETE FROM sw_security_events WHERE user_id = ?").bind(user.id),
     env.DB.prepare("DELETE FROM sw_users WHERE id = ?").bind(user.id),
@@ -1334,21 +1510,21 @@ function oauthProviderConfig(env, provider, origin) {
   return null;
 }
 
-async function beginOAuth(env, request, provider) {
+async function beginOAuth(env, request, provider, linkUser = null) {
   await rateLimit(env, request, `oauth-start:${provider}`, 30, 15 * 60);
   const url = new URL(request.url);
   const config = oauthProviderConfig(env, provider, url.origin);
   if (!config) return accountRedirect({ oauth_error: "configuration" });
 
-  const mode = url.searchParams.get("mode") === "register" ? "register" : "login";
+  const mode = linkUser ? "link" : url.searchParams.get("mode") === "register" ? "register" : "login";
   const remember = url.searchParams.get("remember") === "1" ? "1" : "0";
   const state = `${mode}.${remember}.${randomHex(32)}`;
   const verifier = randomHex(32);
   const now = Math.floor(Date.now() / 1000);
   await env.DB.batch([
     env.DB.prepare("DELETE FROM sw_oauth_states WHERE expires_at <= ?").bind(now),
-    env.DB.prepare("INSERT INTO sw_oauth_states (state, provider, code_verifier, expires_at, created_at) VALUES (?, ?, ?, ?, ?)")
-      .bind(state, provider, verifier, now + OAUTH_STATE_TTL, now),
+    env.DB.prepare("INSERT INTO sw_oauth_states (state, provider, code_verifier, expires_at, created_at, link_user_id) VALUES (?, ?, ?, ?, ?, ?)")
+      .bind(state, provider, verifier, now + OAUTH_STATE_TTL, now, linkUser?.id || null),
   ]);
 
   const target = new URL(config.authorizeUrl);
@@ -1365,7 +1541,7 @@ async function beginOAuth(env, request, provider) {
 
 async function consumeOAuthState(env, provider, state) {
   const now = Math.floor(Date.now() / 1000);
-  const row = await env.DB.prepare("SELECT state, provider, code_verifier AS codeVerifier, expires_at AS expiresAt FROM sw_oauth_states WHERE state = ? AND provider = ? LIMIT 1")
+  const row = await env.DB.prepare("SELECT state, provider, code_verifier AS codeVerifier, expires_at AS expiresAt, link_user_id AS linkUserId FROM sw_oauth_states WHERE state = ? AND provider = ? LIMIT 1")
     .bind(state, provider).first();
   if (!row) return null;
   await env.DB.prepare("DELETE FROM sw_oauth_states WHERE state = ?").bind(state).run();
@@ -1454,6 +1630,20 @@ async function oauthUser(env, provider, profile, allowCreate) {
   return user;
 }
 
+async function linkOAuthIdentity(env, user, provider, profile) {
+  const claimed = await env.DB.prepare("SELECT user_id AS userId FROM sw_oauth_identities WHERE provider = ? AND provider_user_id = ? LIMIT 1")
+    .bind(provider, profile.id).first();
+  if (claimed && claimed.userId !== user.id) throw new Error("IDENTITY_ALREADY_LINKED");
+  const existing = await env.DB.prepare("SELECT id, provider_user_id AS providerUserId FROM sw_oauth_identities WHERE user_id = ? AND provider = ? LIMIT 1")
+    .bind(user.id, provider).first();
+  if (existing && existing.providerUserId !== profile.id) throw new Error("PROVIDER_ALREADY_LINKED");
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(`INSERT INTO sw_oauth_identities (id, user_id, provider, provider_user_id, provider_email, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(provider, provider_user_id) DO UPDATE SET provider_email = excluded.provider_email, updated_at = excluded.updated_at`)
+    .bind(existing?.id || crypto.randomUUID(), user.id, provider, profile.id, profile.email, now, now).run();
+}
+
 async function finishOAuth(env, request, provider) {
   const url = new URL(request.url);
   if (url.searchParams.get("error")) return accountRedirect({ oauth_error: "cancelled" });
@@ -1468,6 +1658,13 @@ async function finishOAuth(env, request, provider) {
     const accessToken = await oauthToken(config, code, savedState.codeVerifier);
     const profile = await oauthProfile(provider, accessToken);
     const [mode = "login", rememberFlag = "0"] = state.split(".");
+    if (mode === "link") {
+      const current = await currentUser(env, request);
+      if (!current || current.id !== savedState.linkUserId) return centerRedirect({ link_error: "session" });
+      await linkOAuthIdentity(env, current, provider, profile);
+      await recordSecurityEvent(env, request, `oauth.${provider}.link`, current.id);
+      return centerRedirect({ linked: provider });
+    }
     const user = await oauthUser(env, provider, profile, mode === "register");
     const security = await env.DB.prepare("SELECT two_factor_enabled AS twoFactorEnabled, totp_secret_ciphertext AS totpSecretCiphertext FROM sw_users WHERE id = ? LIMIT 1").bind(user.id).first();
     if (Number(security?.twoFactorEnabled) === 1 && security?.totpSecretCiphertext) {
@@ -1480,6 +1677,7 @@ async function finishOAuth(env, request, provider) {
     return accountRedirect({ oauth: "success" }, sessionCookie(token, rememberFlag === "1"));
   } catch (error) {
     console.error("SW OAuth error", provider, error instanceof Error ? error.message : "unknown");
+    if (error instanceof Error && ["IDENTITY_ALREADY_LINKED", "PROVIDER_ALREADY_LINKED"].includes(error.message)) return centerRedirect({ link_error: "already_linked" });
     if (error instanceof Error && error.message === "ACCOUNT_MISSING") return accountRedirect({ oauth_error: "account_missing" });
     return accountRedirect({ oauth_error: error instanceof Error && error.message === "PROFILE" ? "profile" : "failed" });
   }
@@ -1498,7 +1696,7 @@ export default {
     }
 
     try {
-      if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity", version: SW_IDENTITY_VERSION, protection: env.TURNSTILE_SECRET_KEY ? "turnstile" : "passive", dataFlow: "verified", twoFactor: env.TOTP_ENCRYPTION_KEY ? "available" : "configuration-required", mail: env.RESEND_API_KEY && env.RESEND_WEBHOOK_SECRET && env.SUPPORT_INBOUND_DOMAIN ? "available" : "configuration-required", subscriptions: "catalog-ready" });
+      if (request.method === "GET" && url.pathname === "/api/health") return json(request, { ok: true, service: "sw-identity", version: SW_IDENTITY_VERSION, protection: env.TURNSTILE_SECRET_KEY ? "turnstile" : "passive", dataFlow: "verified", twoFactor: env.TOTP_ENCRYPTION_KEY ? "available" : "configuration-required", mail: env.RESEND_API_KEY && env.RESEND_WEBHOOK_SECRET && env.SUPPORT_INBOUND_DOMAIN ? "available" : "configuration-required", subscriptions: "catalog-ready", productSso: env.SW_PRODUCT_SSO_SECRET ? "available" : "configuration-required" });
       if (request.method === "GET" && url.pathname === "/api/stats") return await publicStats(env, request);
       if (request.method === "POST" && url.pathname === "/api/activity/pulse") return await recordProductActivity(env, request);
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/start") return await beginOAuth(env, request, "google");
@@ -1506,10 +1704,12 @@ export default {
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/callback") return await finishOAuth(env, request, "google");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/callback") return await finishOAuth(env, request, "kick");
       if (request.method === "POST" && url.pathname === "/api/internal/support/reply") return await replySupportInternally(env, request);
+      if (request.method === "POST" && url.pathname === "/api/internal/auth/product/exchange") return await exchangeProductLogin(env, request);
       if (request.method === "POST" && url.pathname === "/api/webhooks/resend") return await receiveSupportEmail(env, request);
       if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !validOrigin(request)) return json(request, { error: "Geçersiz istek kaynağı." }, 403);
       if (request.method === "POST" && url.pathname === "/api/auth/register") return await register(env, request);
       if (request.method === "POST" && url.pathname === "/api/auth/login") return await login(env, request);
+      if (request.method === "POST" && url.pathname === "/api/auth/remembered") return await rememberedLogin(env, request);
       if (request.method === "POST" && url.pathname === "/api/auth/two-factor/verify") return await verifyTwoFactorLogin(env, request);
       if (request.method === "POST" && url.pathname === "/api/auth/password/forgot") return await requestForgotPassword(env, request);
       if (request.method === "POST" && url.pathname === "/api/auth/password/reset") return await resetForgotPassword(env, request);
@@ -1517,6 +1717,9 @@ export default {
 
       const user = await currentUser(env, request);
       if (request.method === "GET" && url.pathname === "/api/account") return user ? json(request, await accountPayload(env, user)) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "GET" && url.pathname === "/api/auth/product/authorize") return user ? await authorizeProductLogin(env, request, user) : accountRedirect({ oauth_error: "session" });
+      const connectionStartMatch = url.pathname.match(/^\/api\/account\/connections\/(google|kick)\/start$/);
+      if (request.method === "GET" && connectionStartMatch) return user ? await beginOAuth(env, request, connectionStartMatch[1], user) : accountRedirect({ oauth_error: "session" });
       if (request.method === "GET" && url.pathname === "/api/plans") return user ? await planCatalog(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "GET" && url.pathname === "/api/account/avatar") return user ? await serveProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/avatar") return user ? await uploadProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
@@ -1542,6 +1745,7 @@ export default {
       if (request.method === "PUT" && url.pathname === "/api/account/profile") return user ? await updateProfile(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/totp/setup") return user ? await beginTotpSetup(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/totp/confirm") return user ? await confirmTotpSetup(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "POST" && url.pathname === "/api/account/totp/recovery/regenerate") return user ? await regenerateRecoveryCodes(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/totp/disable") return user ? await disableTotp(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       return json(request, { error: "İstek bulunamadı." }, 404);
     } catch (error) {

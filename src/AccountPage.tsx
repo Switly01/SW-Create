@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState, type Ref } from "react";
 import { API_BASE, apiRequest, type SwAccount, type SwTwoFactorChallenge } from "./api";
-import { forgetRememberedSwAccount, readRememberedSwAccounts, rememberSwAccount } from "./rememberedAccounts";
+import { expireRememberedSwLogin, forgetRememberedSwAccount, readRememberedSwAccounts, rememberSwAccount, type RememberedSwAccount } from "./rememberedAccounts";
 import { SW_IDENTITY_VERSION, TURNSTILE_SITE_KEY } from "./security";
 import { TurnstileChallenge } from "./TurnstileChallenge";
 import { SwDualCore } from "../app/ui/SwDualCore";
@@ -27,6 +27,11 @@ function PasswordField({ name, label, current = false, inputRef }: { name: strin
       </span>
     </label>
   );
+}
+
+function ControlledPasswordField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  const [visible, setVisible] = useState(false);
+  return <span className="password-field identity-overlay-password"><input type={visible ? "text" : "password"} value={value} onChange={(event) => onChange(event.target.value)} autoComplete="new-password" placeholder={placeholder} minLength={10} required /><button type="button" className={visible ? "password-toggle visible" : "password-toggle"} onClick={() => setVisible((shown) => !shown)} aria-label={visible ? "Şifreyi gizle" : "Şifreyi göster"} aria-pressed={visible}><span className="password-signal-visor" aria-hidden="true"><i /><b /><em /></span></button></span>;
 }
 
 function AccountPanel() {
@@ -116,16 +121,24 @@ function AccountPanel() {
     return `${API_BASE}/api/auth/oauth/${provider}/start?${query}`;
   }
 
-  function chooseRememberedAccount(username: string) {
-    if (identityInputRef.current) identityInputRef.current.value = username;
+  async function chooseRememberedAccount(account: RememberedSwAccount) {
     setNativeInfoOpen(false);
+    if (account.loginToken) {
+      setBusy(true); setStatus({ type: "success", text: `${account.displayName} için güvenli cihaz anahtarı doğrulanıyor…` });
+      try {
+        const signedIn = await apiRequest<SwAccount>("/api/auth/remembered", { method: "POST", body: JSON.stringify({ token: account.loginToken }) });
+        rememberSwAccount(signedIn);
+        window.location.replace("/home/");
+        return;
+      } catch (error) {
+        setRememberedAccounts(expireRememberedSwLogin(account.id));
+        setStatus({ type: "error", text: error instanceof Error ? error.message : "Hızlı giriş tamamlanamadı." });
+      } finally { setBusy(false); }
+    }
+    if (identityInputRef.current) identityInputRef.current.value = account.username;
     window.requestAnimationFrame(() => {
-      const passwordReady = Boolean(passwordInputRef.current?.value);
-      if (passwordReady) formRef.current?.requestSubmit();
-      else {
-        passwordInputRef.current?.focus();
-        setStatus({ type: "success", text: `${username} seçildi. Şifre yöneticin parolayı doldurduğunda giriş tamamlanır.` });
-      }
+      passwordInputRef.current?.focus();
+      setStatus({ type: "success", text: `${account.username} seçildi. Bu cihazı yeniden güvenilir yapmak için parolanla giriş yap.` });
     });
   }
 
@@ -281,7 +294,7 @@ function AccountPanel() {
             <header><img src="/brand/swcreate-logo.png" alt="" /><div><span>SW IDENTITY</span><h2 id="sw-account-picker-title">Bir hesap seç</h2></div><button type="button" onClick={() => setNativeInfoOpen(false)} aria-label="Kapat">×</button></header>
             <p>Bu cihazda daha önce kullanılan SW hesapları. Yalnızca hesap adı hatırlanır; şifren cihazda saklanmaz.</p>
             <div className="sw-account-picker-list">
-              {rememberedAccounts.map((account) => <div className="sw-account-picker-row" key={account.id}><button type="button" className="sw-account-picker-select" onClick={() => chooseRememberedAccount(account.username)}><span>{account.displayName.slice(0, 1).toLocaleUpperCase("tr-TR")}</span><div><strong>{account.displayName}</strong><small>@{account.username}</small></div><b aria-hidden="true">→</b></button><button type="button" className="sw-account-picker-forget" aria-label={`${account.displayName} hesabını bu cihazdan unut`} onClick={() => setRememberedAccounts(forgetRememberedSwAccount(account.id))}>×</button></div>)}
+              {rememberedAccounts.map((account) => <div className="sw-account-picker-row" key={account.id}><button type="button" className="sw-account-picker-select" disabled={busy} onClick={() => void chooseRememberedAccount(account)}><span>{account.displayName.slice(0, 1).toLocaleUpperCase("tr-TR")}</span><div><strong>{account.displayName}</strong><small>@{account.username}{account.loginToken ? " · HIZLI GİRİŞ" : ""}</small></div><b aria-hidden="true">→</b></button><button type="button" className="sw-account-picker-forget" aria-label={`${account.displayName} hesabını bu cihazdan unut`} onClick={() => setRememberedAccounts(forgetRememberedSwAccount(account.id))}>×</button></div>)}
               {rememberedAccounts.length === 0 && <div className="sw-account-picker-empty"><strong>Bu cihazda kayıtlı hesap yok.</strong><span>İlk girişinden sonra hesabın burada görünecek.</span></div>}
             </div>
             <button type="button" className="sw-account-picker-other" onClick={useAnotherAccount}><span>+</span> Başka bir SW hesabı kullan</button>
@@ -292,7 +305,7 @@ function AccountPanel() {
       {twoFactorChallenge && <div className="identity-2fa-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-2fa-title">
         <section><span>SW IDENTITY v{SW_IDENTITY_VERSION}</span><h2 id="identity-2fa-title">Girişini doğrula</h2><p>Authenticator uygulamandaki 6 haneli kodu veya kurtarma kodlarından birini gir.</p><form onSubmit={verifyTwoFactor}><input value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value)} autoComplete="one-time-code" placeholder="123456 veya XXXX-XXXX" minLength={6} maxLength={9} required autoFocus /><button disabled={busy}>{busy ? "DOĞRULANIYOR…" : "GİRİŞİ TAMAMLA"}</button></form><button type="button" className="identity-2fa-cancel" onClick={() => setTwoFactorChallenge("")}>İptal et</button></section>
       </div>}
-      {forgotOpen && <div className="identity-2fa-overlay identity-forgot-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-forgot-title"><section><span>SW IDENTITY v{SW_IDENTITY_VERSION}</span><h2 id="identity-forgot-title">Şifreni yenile</h2><p>{forgotStep === "request" ? "SW hesabına bağlı e-posta adresini gir. Hesap varsa 6 haneli kod gönderilir." : "E-postana gelen kodu ve yeni şifreni gir."}</p>{forgotStep === "request" ? <form onSubmit={requestPasswordReset}><input type="email" value={forgotEmail} onChange={(event) => setForgotEmail(event.target.value)} autoComplete="email" placeholder="E-posta adresi" required /><button disabled={busy}>{busy ? "GÖNDERİLİYOR…" : "KOD GÖNDER"}</button></form> : <form onSubmit={resetPassword}><input value={forgotCode} onChange={(event) => setForgotCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="6 haneli kod" minLength={6} maxLength={6} required /><input type="password" value={forgotPassword} onChange={(event) => setForgotPassword(event.target.value)} autoComplete="new-password" placeholder="Yeni şifre" minLength={10} required /><input type="password" value={forgotPasswordRepeat} onChange={(event) => setForgotPasswordRepeat(event.target.value)} autoComplete="new-password" placeholder="Yeni şifre tekrar" minLength={10} required /><button disabled={busy}>{busy ? "YENİLENİYOR…" : "ŞİFREYİ YENİLE"}</button></form>}<button type="button" className="identity-2fa-cancel" onClick={() => { setForgotOpen(false); setForgotStep("request"); }}>İptal et</button></section></div>}
+      {forgotOpen && <div className="identity-2fa-overlay identity-forgot-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-forgot-title"><section><span>SW IDENTITY v{SW_IDENTITY_VERSION}</span><h2 id="identity-forgot-title">Şifreni yenile</h2><p>{forgotStep === "request" ? "SW hesabına bağlı e-posta adresini gir. Hesap varsa 10 dakika geçerli 6 haneli kod gönderilir." : "E-postana gelen kodu ve yeni şifreni gir. Yeni kod istersen önceki kod devre dışı kalır."}</p>{forgotStep === "request" ? <form onSubmit={requestPasswordReset}><input type="email" value={forgotEmail} onChange={(event) => setForgotEmail(event.target.value)} autoComplete="email" placeholder="E-posta adresi" required /><button disabled={busy}>{busy ? "GÖNDERİLİYOR…" : "KOD GÖNDER"}</button></form> : <form onSubmit={resetPassword}><input value={forgotCode} onChange={(event) => setForgotCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="6 haneli kod" minLength={6} maxLength={6} required /><ControlledPasswordField value={forgotPassword} onChange={setForgotPassword} placeholder="Yeni şifre" /><ControlledPasswordField value={forgotPasswordRepeat} onChange={setForgotPasswordRepeat} placeholder="Yeni şifre tekrar" /><button disabled={busy}>{busy ? "YENİLENİYOR…" : "ŞİFREYİ YENİLE"}</button></form>}<button type="button" className="identity-2fa-cancel" onClick={() => { setForgotOpen(false); setForgotStep("request"); }}>İptal et</button></section></div>}
     </section>
   );
 }

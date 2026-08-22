@@ -1,6 +1,7 @@
 export const API_BASE = (import.meta.env.VITE_SW_API_URL || "https://api.swcreate.com").replace(/\/$/, "");
 
 export type SwAccount = {
+  rememberedLoginToken?: string;
   user: {
     id: string;
     email: string | null;

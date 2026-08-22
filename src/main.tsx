@@ -9,6 +9,7 @@ import { MemberPage } from "./MemberPage";
 import { LegalPage } from "./LegalPage";
 import { DashboardPage } from "./DashboardPage";
 import { PlansPage } from "./PlansPage";
+import { UpdateNotesPage } from "./UpdateNotesPage";
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
 const page = path.endsWith("/account")
@@ -21,6 +22,8 @@ const page = path.endsWith("/account")
     ? <DashboardPage />
   : path.endsWith("/plans")
     ? <PlansPage />
+  : path.endsWith("/updates")
+    ? <UpdateNotesPage />
   : path.endsWith("/privacy")
     ? <LegalPage kind="privacy" />
     : path.endsWith("/terms")

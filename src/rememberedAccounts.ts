@@ -5,6 +5,7 @@ export type RememberedSwAccount = {
   username: string;
   displayName: string;
   lastUsedAt: number;
+  loginToken?: string;
 };
 
 const STORAGE_KEY = "sw-identity-accounts-v1";
@@ -31,11 +32,13 @@ export function readRememberedSwAccounts(): RememberedSwAccount[] {
 
 export function rememberSwAccount(account: SwAccount) {
   const username = account.user.username || account.user.displayName;
+  const existing = readRememberedSwAccounts().find((item) => item.id === account.user.id);
   const next: RememberedSwAccount = {
     id: account.user.id,
     username,
     displayName: account.user.displayName || username,
     lastUsedAt: Date.now(),
+    ...(account.rememberedLoginToken || existing?.loginToken ? { loginToken: account.rememberedLoginToken || existing?.loginToken } : {}),
   };
   const accounts = readRememberedSwAccounts().filter((item) => item.id !== next.id);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify([next, ...accounts].slice(0, MAX_REMEMBERED_ACCOUNTS)));
@@ -43,6 +46,12 @@ export function rememberSwAccount(account: SwAccount) {
 
 export function forgetRememberedSwAccount(id: string) {
   const accounts = readRememberedSwAccounts().filter((item) => item.id !== id);
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  return accounts;
+}
+
+export function expireRememberedSwLogin(id: string) {
+  const accounts = readRememberedSwAccounts().map((item) => item.id === id ? { ...item, loginToken: undefined } : item);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
   return accounts;
 }
