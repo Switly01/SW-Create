@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Play Connect PC logo">
+  <defs>
+    <linearGradient id="pcEdge" x1="16" y1="10" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#03e0d1"/>
+      <stop offset=".48" stop-color="#53fc18"/>
+      <stop offset="1" stop-color="#ecff3c"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="#050a0d" stroke="url(#pcEdge)" stroke-width="4"/>
+  <path d="M23 32h82" fill="none" stroke="#03e0d1" stroke-opacity=".18" stroke-linecap="round"/>
+  <circle cx="96" cy="24" r="3" fill="#ecff3c"/>
+  <circle cx="105" cy="24" r="3" fill="#03e0d1"/>
+  <g fill="url(#pcEdge)">
+    <path fill-rule="evenodd" d="M24 40h29l11 11v19L53 81H40v20H24V40Zm16 14v13h10l6-6v-2l-5-5H40Z"/>
+    <path d="M82 40h25v15H87l-7 7v17l7 7h20v15H81L65 85V56Z"/>
+  </g>
+</svg>

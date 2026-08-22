@@ -4,12 +4,12 @@ import { SW_IDENTITY_VERSION } from "./security";
 
 type ProductKey = "sw-create" | "sw-identity" | "play-streamers" | "play-connect";
 type ReleaseEntry = { version: string; title: string; body: string };
-type ProductHistory = { name: string; mark: string; current: string; summary: string; entries: ReleaseEntry[] };
+type ProductHistory = { name: string; logo: string; current: string; summary: string; entries: ReleaseEntry[] };
 
 const histories: Record<ProductKey, ProductHistory> = {
   "sw-create": {
     name: "SW Create",
-    mark: "SW",
+    logo: "/brand/swcreate-logo.png",
     current: "Site 2.0",
     summary: "Marka sahnesi, ortak hesap sistemi ve ürün ağı bağımsız bir kullanıcı deneyiminde birleşti.",
     entries: [
@@ -26,7 +26,7 @@ const histories: Record<ProductKey, ProductHistory> = {
   },
   "sw-identity": {
     name: "SW Identity",
-    mark: "ID",
+    logo: "/brand/sw-identity-logo.svg",
     current: `v${SW_IDENTITY_VERSION}`,
     summary: "Kimlik doğrulama, veri akışı, posta köprüsü ve ürün bağlantıları aynı sürümlü güvenlik katmanında korunuyor.",
     entries: [
@@ -44,7 +44,7 @@ const histories: Record<ProductKey, ProductHistory> = {
   },
   "play-streamers": {
     name: "Play Streamers",
-    mark: "PS",
+    logo: "/brand/play-streamers-ps-logo.svg",
     current: "v4.20",
     summary: "Yayıncı paneli, bağış köprüleri ve hesap bazlı ölçüm sistemi doğrulanabilir bir çalışma alanında birleşti.",
     entries: [
@@ -63,7 +63,7 @@ const histories: Record<ProductKey, ProductHistory> = {
   },
   "play-connect": {
     name: "Play Connect",
-    mark: "PC",
+    logo: "/brand/play-connect-pc-logo.svg",
     current: "v1.10.3",
     summary: "Chromium ve Firefox mağazalarında aynı sürümle çalışan yayın köprüsü, canlı olayları düşük gecikmeyle taşıyor.",
     entries: [
@@ -90,9 +90,9 @@ export function UpdateNotesPage() {
     <header className="member-topbar"><a href="/home/" className="member-brand"><img src="/brand/swcreate-logo.png" alt="" /><span>SW CREATE<small>GÜNCELLEME NOTLARI</small></span></a><div className="member-top-status"><i /> SW IDENTITY v{SW_IDENTITY_VERSION}</div><a className="dashboard-account-link" href="/home/">Kullanıcı ana sayfası</a></header>
     <section className="sw-updates-content">
       <div className="sw-dashboard-heading"><p>DÖRT ÜRÜN · TEK ARŞİV</p><h1>Değişen her şey,<br />tek yörüngede.</h1><span>SW Create, kimlik güvenliği, yayıncı paneli ve tarayıcı köprüsündeki doğrulanmış geliştirmeleri ürün ürün incele.</span></div>
-      <nav className="sw-update-tabs" aria-label="Ürün güncelleme notları">{productOrder.map((key) => { const item = histories[key]; return <button key={key} type="button" className={active === key ? "active" : ""} aria-pressed={active === key} onClick={() => setActive(key)}><b>{item.mark}</b><span><strong>{item.name}</strong><small>{item.current}</small></span><i aria-hidden="true">→</i></button>; })}</nav>
+      <nav className="sw-update-tabs" aria-label="Ürün güncelleme notları">{productOrder.map((key) => { const item = histories[key]; return <button key={key} type="button" className={active === key ? "active" : ""} aria-pressed={active === key} onClick={() => setActive(key)}><b><img src={item.logo} alt="" /></b><span><strong>{item.name}</strong><small>{item.current}</small></span><i aria-hidden="true">→</i></button>; })}</nav>
       <div className="sw-release-hero" aria-live="polite"><span>GÜNCEL SÜRÜM · {history.name.toUpperCase()}</span><strong>{history.current}</strong><p>{history.summary}</p></div>
-      <section className="sw-update-notes" aria-live="polite">{history.entries.map((note, index) => <article key={`${active}-${note.version}-${note.title}`}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{history.name.toUpperCase()} · {note.version}</span><h2>{note.title}</h2><p>{note.body}</p></div><i aria-hidden="true" /></article>)}</section>
+      <section className={`sw-update-notes${active === "sw-create" ? " without-numbers" : ""}`} aria-live="polite">{history.entries.map((note, index) => <article key={`${active}-${note.version}-${note.title}`}>{active !== "sw-create" && <b>{String(index + 1).padStart(2, "0")}</b>}<div><span>{history.name.toUpperCase()} · {note.version}</span><h2>{note.title}</h2><p>{note.body}</p></div><i aria-hidden="true" /></article>)}</section>
     </section>
   </main>;
 }

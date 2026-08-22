@@ -1,7 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" role="img" aria-label="Play Streamers PS logo">
-  <g transform="translate(0 2.2) skewY(-6)">
-    <path d="M11 .5h20A10.5 10.5 0 0 1 41.5 11v20A10.5 10.5 0 0 1 31 41.5H3.5A3 3 0 0 1 .5 38.5V11A10.5 10.5 0 0 1 11 .5Z" fill="#050a08" stroke="#53fc18" stroke-opacity=".78" stroke-width="1"/>
-    <path fill="#53fc18" d="M7.2 9.3h8.2c5.1 0 8.2 2.8 8.2 7.2s-3.1 7.3-8.2 7.3h-3.1v8.5H7.2v-23Zm5.1 5v4.6h3c1.9 0 3-.8 3-2.3s-1.1-2.3-3-2.3h-3Z"/>
-    <path fill="#53fc18" d="M34.8 14.3h-6.7c-1.4 0-2.2.6-2.2 1.5 0 .8.7 1.2 2.1 1.6l2.4.6c4 .9 5.7 3.1 5.7 6.6 0 4.8-3.3 7.7-8.8 7.7h-6.5v-5h6.7c1.8 0 2.7-.7 2.7-1.8 0-1-.7-1.4-2.1-1.8l-2.6-.6c-3.8-.9-5.7-3.2-5.7-6.5 0-4.2 3.2-6.7 8.4-6.7h6.6v4.4Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Play Streamers PS logo">
+  <defs>
+    <linearGradient id="psEdge" x1="18" y1="12" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8dff64"/>
+      <stop offset="1" stop-color="#53fc18"/>
+    </linearGradient>
+    <filter id="psGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="#050a08" stroke="url(#psEdge)" stroke-width="4"/>
+  <rect x="15" y="15" width="98" height="98" rx="22" fill="none" stroke="#53fc18" stroke-opacity=".13"/>
+  <g fill="url(#psEdge)" filter="url(#psGlow)">
+    <path fill-rule="evenodd" d="M24 38h25l13 13v17L50 80H40v20l-16 10V38Zm16 14v14h8l6-6v-2l-6-6h-8Z"/>
+    <path d="M79 38h27v14H82l-5 5v4l5 5h14l13 13v15l-11 11H68V91h24l5-5v-3l-5-4H78L64 65V52Z"/>
   </g>
 </svg>
