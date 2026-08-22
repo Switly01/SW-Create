@@ -281,7 +281,7 @@ function AccountPanel() {
             <button type="button" onClick={() => identityInputRef.current?.focus()}>Bilgilerime dön</button>
           </aside>}
 
-          <label className="remember-control"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span aria-hidden="true"><i /></span><b>Beni hatırla</b><small>Bu cihazda 30 gün açık kal</small></label>
+          <label className="remember-control"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span aria-hidden="true"><i /></span><b>Beni hatırla</b><small>Bu cihazda 20 gün açık kal</small></label>
           {mode === "login" && <button type="button" className="forgot-password-link" onClick={() => { setForgotOpen(true); setForgotStep("request"); setStatus(null); }}>Şifremi unuttum</button>}
         </form>
         <div className={`auth-status ${status?.type || ""}`} role="status">{status?.text}</div>
