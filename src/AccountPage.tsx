@@ -36,6 +36,21 @@ function ControlledPasswordField({ value, onChange, placeholder }: { value: stri
 
 function AccountPanel() {
   const params = new URLSearchParams(window.location.search);
+  const returnTo = (() => {
+    try {
+      const raw = params.get("return_to");
+      if (!raw) return null;
+      const target = new URL(raw, API_BASE);
+      const state = String(target.searchParams.get("state") || "");
+      const redirectUri = String(target.searchParams.get("redirect_uri") || "");
+      if (target.origin !== API_BASE || target.pathname !== "/api/auth/product/authorize") return null;
+      if (target.searchParams.get("client_id") !== "play-streamers" || redirectUri !== "playstreamers://identity/callback") return null;
+      if (!/^[a-f0-9]{32,200}$/i.test(state)) return null;
+      return target.toString();
+    } catch {
+      return null;
+    }
+  })();
   const [mode, setMode] = useState<Mode>(params.get("mode") === "register" ? "register" : "login");
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -58,10 +73,14 @@ function AccountPanel() {
   const formStartedAtRef = useRef(Date.now());
   const formRef = useRef<HTMLFormElement>(null);
 
+  function finishAuthentication() {
+    window.location.replace(returnTo || "/home/");
+  }
+
   useEffect(() => {
     const oauth = new URLSearchParams(window.location.search);
     if (oauth.get("oauth") === "success") {
-      window.location.replace("/home/");
+      finishAuthentication();
       return;
     }
     const challengeId = String(oauth.get("challenge_id") || "").trim();
@@ -85,7 +104,7 @@ function AccountPanel() {
     apiRequest<SwAccount>("/api/account")
       .then((account) => {
         rememberSwAccount(account);
-        window.location.replace("/home/");
+        finishAuthentication();
       })
       .catch(() => setChecking(false));
   }, []);
@@ -118,6 +137,7 @@ function AccountPanel() {
 
   function oauthUrl(provider: "google" | "kick") {
     const query = new URLSearchParams({ mode, remember: remember ? "1" : "0" });
+    if (returnTo) query.set("return_to", new URL(returnTo).pathname + new URL(returnTo).search);
     return `${API_BASE}/api/auth/oauth/${provider}/start?${query}`;
   }
 
@@ -128,7 +148,7 @@ function AccountPanel() {
       try {
         const signedIn = await apiRequest<SwAccount>("/api/auth/remembered", { method: "POST", body: JSON.stringify({ token: account.loginToken }) });
         rememberSwAccount(signedIn);
-        window.location.replace("/home/");
+        finishAuthentication();
         return;
       } catch (error) {
         setRememberedAccounts(expireRememberedSwLogin(account.id));
@@ -187,7 +207,7 @@ function AccountPanel() {
       }
       const account = result;
       rememberSwAccount(account);
-      window.location.replace("/home/");
+      finishAuthentication();
     } catch (error) {
       setStatus({ type: "error", text: error instanceof Error ? error.message : "İşlem tamamlanamadı." });
       setTurnstileReset((value) => value + 1);
@@ -206,7 +226,7 @@ function AccountPanel() {
         body: JSON.stringify({ challengeId: twoFactorChallenge, code: twoFactorCode, remember }),
       });
       rememberSwAccount(account);
-      window.location.replace("/home/");
+      finishAuthentication();
     } catch (error) {
       setStatus({ type: "error", text: error instanceof Error ? error.message : "Doğrulama tamamlanamadı." });
     } finally {

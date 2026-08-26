@@ -1,6 +1,6 @@
 # SW Identity Security
 
-Sürüm: `1.5.0`
+Sürüm: `1.7.0`
 
 Profil fotoğrafları ve destek ekleri özel D1 dosya nesnelerinde parçalı tutulur;
 dosya erişimi oturum ve kayıt sahipliği doğrulamasından sonra Worker üzerinden
@@ -33,7 +33,7 @@ görsel etiketten ibaret değildir; aşağıdaki kontroller birlikte çalışır
   arayüzün ihtiyaç duyduğu alanlarla sınırlandırılır.
 - TOTP iki aşamalı doğrulama sırları AES-GCM ile şifrelenir; kurtarma kodları
   yalnız hash olarak tutulur ve tek kullanımlıdır.
-- API yanıtları `SW Identity v1.5.0` sürüm başlığı ile güvenlik, içerik türü,
+- API yanıtları `SW Identity v1.7.0` sürüm başlığı ile güvenlik, içerik türü,
   çerçeveleme, izin ve yönlendiren politikalarını taşır.
 - Cihazdaki hesap seçicide yalnızca kullanıcı kimliği ve görünen ad saklanır;
   parola, OAuth token'ı veya oturum anahtarı `localStorage` içine yazılmaz.

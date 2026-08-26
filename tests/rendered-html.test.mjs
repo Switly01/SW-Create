@@ -28,11 +28,11 @@ test("hesap, kullanıcı, plan ve yasal sayfa girişleri üretilir", async () =>
   }
 });
 
-test("üretim paketi SW Identity 1.5 ve abonelik kataloğunu içerir", async () => {
+test("üretim paketi SW Identity 1.7 ve abonelik kataloğunu içerir", async () => {
   const source = await builtAppSource();
   const migration = await readFile(resolve(import.meta.dirname, "../migrations/0011_plan_catalog_and_ticket_numbers.sql"), "utf8");
   assert.match(source, /SW IDENTITY/);
-  assert.match(source, /1\.5\.0/);
+  assert.match(source, /1\.7\.0/);
   assert.match(source, /ABONELİK ALTYAPISI HAZIR/);
   assert.match(migration, /SW Create Product Pro Edition/);
   assert.match(migration, /Play Streamers Product Pro/);

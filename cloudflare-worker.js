@@ -15,6 +15,7 @@ const TOTP_CHALLENGE_TTL = 5 * 60;
 const TOTP_MAX_ATTEMPTS = 5;
 const TOTP_RECOVERY_CODE_COUNT = 8;
 const ACCOUNT_URL = "https://swcreate.com/account/";
+const SW_API_ORIGIN = "https://api.swcreate.com";
 const GOOGLE_OAUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -437,8 +438,39 @@ async function planCatalog(env, request, user) {
 function validProductRedirect(clientId, value) {
   try {
     const target = new URL(String(value || ""));
-    return clientId === "play-streamers" && target.protocol === "https:" && (target.origin === "https://pstreamers.com" || target.origin === "https://www.pstreamers.com");
+    if (clientId !== "play-streamers") return false;
+    const desktopCallback = target.protocol === "playstreamers:"
+      && target.hostname === "identity"
+      && target.pathname === "/callback"
+      && !target.username
+      && !target.password
+      && !target.port;
+    const webCallback = target.protocol === "https:"
+      && (target.origin === "https://pstreamers.com" || target.origin === "https://www.pstreamers.com");
+    return desktopCallback || webCallback;
   } catch { return false; }
+}
+
+function validProductAuthorizeReturn(value, origin = SW_API_ORIGIN) {
+  try {
+    const target = new URL(String(value || ""), origin);
+    if (target.origin !== origin || target.pathname !== "/api/auth/product/authorize") return null;
+    const clientId = String(target.searchParams.get("client_id") || "");
+    const redirectUri = String(target.searchParams.get("redirect_uri") || "");
+    const state = String(target.searchParams.get("state") || "");
+    if (!validProductRedirect(clientId, redirectUri) || !state || state.length > 200) return null;
+    return `${target.pathname}${target.search}`;
+  } catch { return null; }
+}
+
+function encodeProductReturn(value) {
+  return value ? base64Url(new TextEncoder().encode(value)) : "";
+}
+
+function decodeProductReturn(value, origin) {
+  try {
+    return validProductAuthorizeReturn(new TextDecoder().decode(base64UrlBytes(value)), origin);
+  } catch { return null; }
 }
 
 async function authorizeProductLogin(env, request, user) {
@@ -482,7 +514,24 @@ async function exchangeProductLogin(env, request) {
   await env.DB.prepare(`INSERT INTO sw_product_connections (user_id, product_id, connected_at, last_used_at)
     VALUES (?, ?, ?, ?) ON CONFLICT(user_id, product_id) DO UPDATE SET last_used_at = excluded.last_used_at`)
     .bind(row.userId, clientId, now, now).run();
-  return json(request, { ok: true, user: { id: row.userId, email: isPublicEmail(row.email) ? row.email : null, username: row.username, displayName: row.displayName }, identityVersion: SW_IDENTITY_VERSION });
+  const subscription = await env.DB.prepare(`SELECT c.tier, c.name AS planName, s.status, s.current_period_end AS expiresAt
+    FROM sw_subscriptions s JOIN sw_plan_catalog c ON c.id = s.plan_id
+    WHERE s.user_id = ? AND s.product_id = ? AND s.status = 'active'
+      AND (s.current_period_end IS NULL OR s.current_period_end > ?)
+    ORDER BY c.sort_order DESC LIMIT 1`).bind(row.userId, clientId, now).first();
+  const safeTier = ["free", "pro", "product-pro"].includes(String(subscription?.tier)) ? subscription.tier : "free";
+  return json(request, {
+    ok: true,
+    user: { id: row.userId, email: isPublicEmail(row.email) ? row.email : null, username: row.username, displayName: row.displayName },
+    product: {
+      id: clientId,
+      tier: safeTier,
+      planName: subscription?.planName || "Play Streamers Free",
+      status: subscription?.status || "active",
+      expiresAt: subscription?.expiresAt || null,
+    },
+    identityVersion: SW_IDENTITY_VERSION,
+  });
 }
 
 function cleanSupportText(value, minimum, maximum) {
@@ -1590,7 +1639,9 @@ async function beginOAuth(env, request, provider, linkUser = null) {
 
   const mode = linkUser ? "link" : url.searchParams.get("mode") === "register" ? "register" : "login";
   const remember = url.searchParams.get("remember") === "1" ? "1" : "0";
-  const state = `${mode}.${remember}.${randomHex(32)}`;
+  const productReturn = linkUser ? null : validProductAuthorizeReturn(url.searchParams.get("return_to"), url.origin);
+  const returnToken = encodeProductReturn(productReturn);
+  const state = `${mode}.${remember}.${randomHex(32)}${returnToken ? `.${returnToken}` : ""}`;
   const verifier = randomHex(32);
   const now = Math.floor(Date.now() / 1000);
   await env.DB.batch([
@@ -1754,7 +1805,8 @@ async function finishOAuth(env, request, provider) {
   try {
     const accessToken = await oauthToken(config, code, savedState.codeVerifier);
     const profile = await oauthProfile(provider, accessToken);
-    const [mode = "login", rememberFlag = "0"] = state.split(".");
+    const [mode = "login", rememberFlag = "0", , returnToken = ""] = state.split(".");
+    const productReturn = returnToken ? decodeProductReturn(returnToken, url.origin) : null;
     if (mode === "link") {
       const current = await currentUser(env, request);
       if (!current || current.id !== savedState.linkUserId) return centerRedirect({ link_error: "session" });
@@ -1767,11 +1819,13 @@ async function finishOAuth(env, request, provider) {
     if (Number(security?.twoFactorEnabled) === 1 && security?.totpSecretCiphertext) {
       const challenge = await createTwoFactorChallenge(env, user.id, rememberFlag === "1");
       await recordSecurityEvent(env, request, `oauth.${provider}.two_factor`, user.id, "challenge");
-      return accountRedirect({ two_factor_required: "1", challenge_id: challenge.challengeId });
+      return accountRedirect({ two_factor_required: "1", challenge_id: challenge.challengeId, ...(productReturn ? { return_to: productReturn } : {}) });
     }
     const token = await createSession(env, user.id, request);
     await recordSecurityEvent(env, request, `oauth.${provider}`, user.id);
-    return accountRedirect({ oauth: "success" }, sessionCookie(token, rememberFlag === "1"));
+    return productReturn
+      ? redirect(new URL(productReturn, url.origin).toString(), sessionCookie(token, rememberFlag === "1"))
+      : accountRedirect({ oauth: "success" }, sessionCookie(token, rememberFlag === "1"));
   } catch (error) {
     console.error("SW OAuth error", provider, error instanceof Error ? error.message : "unknown");
     if (error instanceof Error && ["IDENTITY_ALREADY_LINKED", "PROVIDER_ALREADY_LINKED"].includes(error.message)) return centerRedirect({ link_error: "already_linked" });
@@ -1814,7 +1868,11 @@ export default {
 
       const user = await currentUser(env, request);
       if (request.method === "GET" && url.pathname === "/api/account") return user ? json(request, await accountPayload(env, user)) : json(request, { error: "Oturum bulunamadı." }, 401);
-      if (request.method === "GET" && url.pathname === "/api/auth/product/authorize") return user ? await authorizeProductLogin(env, request, user) : accountRedirect({ oauth_error: "session" });
+      if (request.method === "GET" && url.pathname === "/api/auth/product/authorize") {
+        if (user) return await authorizeProductLogin(env, request, user);
+        const returnTo = validProductAuthorizeReturn(`${url.pathname}${url.search}`, url.origin);
+        return returnTo ? accountRedirect({ return_to: returnTo }) : accountRedirect({ oauth_error: "session" });
+      }
       const connectionStartMatch = url.pathname.match(/^\/api\/account\/connections\/(google|kick)\/start$/);
       if (request.method === "GET" && connectionStartMatch) return user ? await beginOAuth(env, request, connectionStartMatch[1], user) : accountRedirect({ oauth_error: "session" });
       const connectionDisconnectMatch = url.pathname.match(/^\/api\/account\/connections\/(google|kick|play-streamers)$/);
