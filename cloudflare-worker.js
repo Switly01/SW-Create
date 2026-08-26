@@ -1,7 +1,7 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.7.0";
+const SW_IDENTITY_VERSION = "1.8.0";
 const SW_IDENTITY_RELEASED_AT = 1787414400;
 const EMAIL_CODE_TTL = 10 * 60;
 const EMAIL_CODE_RESEND = 40;
@@ -281,7 +281,7 @@ async function verifyIdentityRequest(env, request, body) {
   if (!response.ok) return false;
   const result = await response.json();
   const hostname = String(result.hostname || "").toLowerCase();
-  const validHostname = hostname === "swcreate.com" || hostname === "www.swcreate.com" || hostname === "localhost" || hostname === "127.0.0.1";
+  const validHostname = hostname === "swcreate.com" || hostname === "www.swcreate.com" || hostname === "pstreamers.com" || hostname === "www.pstreamers.com" || hostname === "localhost" || hostname === "127.0.0.1";
   return result.success === true && result.action === "sw-auth" && validHostname;
 }
 
@@ -473,6 +473,30 @@ function decodeProductReturn(value, origin) {
   } catch { return null; }
 }
 
+function validProductRequest(value) {
+  if (!value || typeof value !== "object") return null;
+  const clientId = String(value.clientId || "");
+  const redirectUri = String(value.redirectUri || "");
+  const state = String(value.state || "");
+  return validProductRedirect(clientId, redirectUri) && state && state.length <= 200 ? { clientId, redirectUri, state } : null;
+}
+
+async function createProductHandoffTarget(env, request, user, product) {
+  if (!product || !env.SW_PRODUCT_SSO_SECRET) return null;
+  const code = randomHex(32);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM sw_product_handoffs WHERE expires_at <= ? OR consumed_at IS NOT NULL").bind(now),
+    env.DB.prepare(`INSERT INTO sw_product_handoffs (id, user_id, product_id, code_hash, redirect_uri, expires_at, created_at, consumed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`).bind(crypto.randomUUID(), user.id, product.clientId, await sha256(code), product.redirectUri, now + PRODUCT_HANDOFF_TTL, now),
+  ]);
+  const target = new URL(product.redirectUri);
+  target.searchParams.set("code", code);
+  target.searchParams.set("state", product.state);
+  await recordSecurityEvent(env, request, "product_sso.authorize", user.id);
+  return target.toString();
+}
+
 async function authorizeProductLogin(env, request, user) {
   await rateLimit(env, request, "product-sso-authorize", 12, 15 * 60, user.id);
   const url = new URL(request.url);
@@ -481,18 +505,8 @@ async function authorizeProductLogin(env, request, user) {
   const state = String(url.searchParams.get("state") || "");
   if (!validProductRedirect(clientId, redirectUri) || !state || state.length > 200) return json(request, { error: "Ürün giriş isteği geçerli değil." }, 400);
   if (!env.SW_PRODUCT_SSO_SECRET) return json(request, { error: "Play Streamers SW giriş köprüsü henüz etkinleştirilmedi." }, 503);
-  const code = randomHex(32);
-  const now = Math.floor(Date.now() / 1000);
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM sw_product_handoffs WHERE expires_at <= ? OR consumed_at IS NOT NULL").bind(now),
-    env.DB.prepare(`INSERT INTO sw_product_handoffs (id, user_id, product_id, code_hash, redirect_uri, expires_at, created_at, consumed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`).bind(crypto.randomUUID(), user.id, clientId, await sha256(code), redirectUri, now + PRODUCT_HANDOFF_TTL, now),
-  ]);
-  const target = new URL(redirectUri);
-  target.searchParams.set("code", code);
-  target.searchParams.set("state", state);
-  await recordSecurityEvent(env, request, "product_sso.authorize", user.id);
-  return redirect(target.toString());
+  const target = await createProductHandoffTarget(env, request, user, { clientId, redirectUri, state });
+  return redirect(target);
 }
 
 async function exchangeProductLogin(env, request) {
@@ -1110,8 +1124,10 @@ async function register(env, request) {
   ]);
   const token = await createSession(env, userId, request);
   await recordSecurityEvent(env, request, "account.register", userId);
-  const payload = await accountPayload(env, { id: userId, email, username, displayName, birthDate, createdAt: now, twoFactorEnabled: 0 });
-  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, userId, request) }, 201, sessionCookie(token, remember));
+  const createdUser = { id: userId, email, username, displayName, birthDate, createdAt: now, twoFactorEnabled: 0 };
+  const payload = await accountPayload(env, createdUser);
+  const productRedirectUrl = await createProductHandoffTarget(env, request, createdUser, validProductRequest(body.product));
+  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, userId, request), ...(productRedirectUrl ? { productRedirectUrl } : {}) }, 201, sessionCookie(token, remember));
 }
 
 async function login(env, request) {
@@ -1138,7 +1154,8 @@ async function login(env, request) {
   const token = await createSession(env, user.id, request);
   await recordSecurityEvent(env, request, "account.login", user.id);
   const payload = await accountPayload(env, user);
-  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, user.id, request) }, 200, sessionCookie(token, remember));
+  const productRedirectUrl = await createProductHandoffTarget(env, request, user, validProductRequest(body.product));
+  return json(request, { ...payload, rememberedLoginToken: await createRememberedLogin(env, user.id, request), ...(productRedirectUrl ? { productRedirectUrl } : {}) }, 200, sessionCookie(token, remember));
 }
 
 function base64UrlBytes(value) {
@@ -1306,7 +1323,8 @@ async function verifyTwoFactorLogin(env, request) {
   const token = await createSession(env, row.userId, request, remember ? REMEMBERED_LOGIN_TTL : SESSION_TTL);
   await recordSecurityEvent(env, request, "account.login.two_factor", row.userId);
   const payload = await accountPayload(env, row);
-  return json(request, { ...payload, ...(remember ? { rememberedLoginToken: await createRememberedLogin(env, row.userId, request) } : {}) }, 200, sessionCookie(token, remember, REMEMBERED_LOGIN_TTL));
+  const productRedirectUrl = await createProductHandoffTarget(env, request, row, validProductRequest(body.product));
+  return json(request, { ...payload, ...(remember ? { rememberedLoginToken: await createRememberedLogin(env, row.userId, request) } : {}), ...(productRedirectUrl ? { productRedirectUrl } : {}) }, 200, sessionCookie(token, remember, REMEMBERED_LOGIN_TTL));
 }
 
 async function beginTotpSetup(env, request, user) {
@@ -1819,7 +1837,16 @@ async function finishOAuth(env, request, provider) {
     if (Number(security?.twoFactorEnabled) === 1 && security?.totpSecretCiphertext) {
       const challenge = await createTwoFactorChallenge(env, user.id, rememberFlag === "1");
       await recordSecurityEvent(env, request, `oauth.${provider}.two_factor`, user.id, "challenge");
-      return accountRedirect({ two_factor_required: "1", challenge_id: challenge.challengeId, ...(productReturn ? { return_to: productReturn } : {}) });
+      if (productReturn) {
+        const authorize = new URL(productReturn, url.origin);
+        const callback = new URL(authorize.searchParams.get("redirect_uri"));
+        callback.searchParams.set("two_factor_required", "1");
+        callback.searchParams.set("challenge_id", challenge.challengeId);
+        callback.searchParams.set("state", String(authorize.searchParams.get("state") || ""));
+        callback.searchParams.set("provider", provider);
+        return redirect(callback.toString());
+      }
+      return accountRedirect({ two_factor_required: "1", challenge_id: challenge.challengeId });
     }
     const token = await createSession(env, user.id, request);
     await recordSecurityEvent(env, request, `oauth.${provider}`, user.id);
