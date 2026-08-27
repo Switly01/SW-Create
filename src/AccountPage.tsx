@@ -44,7 +44,17 @@ function AccountPanel() {
       const state = String(target.searchParams.get("state") || "");
       const redirectUri = String(target.searchParams.get("redirect_uri") || "");
       if (target.origin !== API_BASE || target.pathname !== "/api/auth/product/authorize") return null;
-      if (target.searchParams.get("client_id") !== "play-streamers" || redirectUri !== "playstreamers://identity/callback") return null;
+      const webRedirect = (() => {
+        try {
+          const callback = new URL(redirectUri);
+          return callback.protocol === "https:"
+            && ["https://pstreamers.com", "https://www.pstreamers.com"].includes(callback.origin)
+            && callback.pathname === "/identity/callback";
+        } catch {
+          return false;
+        }
+      })();
+      if (target.searchParams.get("client_id") !== "play-streamers" || (redirectUri !== "playstreamers://identity/callback" && !webRedirect)) return null;
       if (!/^[a-f0-9]{32,200}$/i.test(state)) return null;
       return target.toString();
     } catch {
