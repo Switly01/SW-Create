@@ -1,8 +1,8 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.8.0";
-const SW_IDENTITY_RELEASED_AT = 1787414400;
+const SW_IDENTITY_VERSION = "1.8.1";
+const SW_IDENTITY_RELEASED_AT = 1787922000;
 const EMAIL_CODE_TTL = 10 * 60;
 const EMAIL_CODE_RESEND = 40;
 const REMEMBERED_LOGIN_TTL = 20 * 24 * 60 * 60;
@@ -164,6 +164,10 @@ function corsHeaders(request) {
     vary: "Origin",
   });
   if (origin && ALLOWED_ORIGINS.has(origin)) {
+    // Play Streamers kimlik formları SW Identity'yi CORS ile çağırır. İzinli
+    // ürün kökenlerinde same-site CORP tarayıcının geçerli JSON hata/başarı
+    // yanıtını "Failed to fetch" olarak gizlememelidir.
+    headers.set("cross-origin-resource-policy", "cross-origin");
     headers.set("access-control-allow-origin", origin);
     headers.set("access-control-allow-credentials", "true");
     headers.set("access-control-allow-methods", "GET,POST,PUT,DELETE,OPTIONS");
