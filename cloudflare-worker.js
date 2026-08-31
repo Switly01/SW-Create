@@ -1,8 +1,8 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.8.1";
-const SW_IDENTITY_RELEASED_AT = 1787922000;
+const SW_IDENTITY_VERSION = "1.8.2";
+const SW_IDENTITY_RELEASED_AT = 1788195600;
 const EMAIL_CODE_TTL = 10 * 60;
 const EMAIL_CODE_RESEND = 40;
 const REMEMBERED_LOGIN_TTL = 20 * 24 * 60 * 60;
@@ -550,6 +550,29 @@ async function exchangeProductLogin(env, request) {
     },
     identityVersion: SW_IDENTITY_VERSION,
   });
+}
+
+async function internalProductAccountUser(env, request) {
+  const authorization = String(request.headers.get("authorization") || "");
+  if (!env.SW_PRODUCT_SSO_SECRET || !safeEqual(authorization, `Bearer ${env.SW_PRODUCT_SSO_SECRET}`)) return null;
+  const userId = String(request.headers.get("x-sw-identity-user-id") || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,128}$/.test(userId)) return null;
+  return env.DB.prepare(`SELECT id, email, username, display_name AS displayName, birth_date AS birthDate,
+      created_at AS createdAt, two_factor_enabled AS twoFactorEnabled,
+      profile_avatar_type AS profileAvatarType, profile_avatar_value AS profileAvatarValue,
+      NULL AS sessionId
+    FROM sw_users WHERE id = ? LIMIT 1`).bind(userId).first();
+}
+
+async function handleInternalProductAccount(env, request, action) {
+  const user = await internalProductAccountUser(env, request);
+  if (!user) return json(request, { error: "Ürün hesabı doğrulanamadı." }, 401);
+  if (action === "read") return json(request, await accountPayload(env, user));
+  if (action === "profile") return updateProfile(env, request, user);
+  if (action === "challenge") return requestSecurityChallenge(env, request, user);
+  if (action === "email") return updateEmail(env, request, user);
+  if (action === "password") return updatePassword(env, request, user);
+  return json(request, { error: "Ürün hesap işlemi bulunamadı." }, 404);
 }
 
 function cleanSupportText(value, minimum, maximum) {
@@ -1524,9 +1547,12 @@ async function updateEmail(env, request, user) {
   if (duplicate) return json(request, { error: "Bu e-posta adresi başka bir hesapta kullanılıyor." }, 409);
   if (!(await verifySensitiveAction(env, passwordCheck.privateUser, "email_change", newEmail, body.code))) return json(request, { error: "Güvenlik kodu doğru değil veya süresi dolmuş." }, 400);
   const now = Math.floor(Date.now() / 1000);
+  const revokeSessions = user.sessionId
+    ? env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId)
+    : env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ?").bind(user.id);
   await env.DB.batch([
     env.DB.prepare("UPDATE sw_users SET email = ?, email_verified_at = ?, email_changed_at = ?, updated_at = ? WHERE id = ?").bind(newEmail, now, now, now, user.id),
-    env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId),
+    revokeSessions,
     env.DB.prepare("DELETE FROM sw_remembered_logins WHERE user_id = ?").bind(user.id),
   ]);
   await recordSecurityEvent(env, request, "account.email.update", user.id);
@@ -1546,9 +1572,12 @@ async function updatePassword(env, request, user) {
   const salt = randomHex(18);
   const digest = await passwordDigest(newPassword, salt, env.AUTH_PEPPER);
   const now = Math.floor(Date.now() / 1000);
+  const revokeSessions = user.sessionId
+    ? env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId)
+    : env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ?").bind(user.id);
   await env.DB.batch([
     env.DB.prepare("UPDATE sw_users SET password_hash = ?, password_salt = ?, password_login_enabled = 1, updated_at = ? WHERE id = ?").bind(digest, salt, now, user.id),
-    env.DB.prepare("DELETE FROM sw_sessions WHERE user_id = ? AND id != ?").bind(user.id, user.sessionId),
+    revokeSessions,
     env.DB.prepare("DELETE FROM sw_remembered_logins WHERE user_id = ?").bind(user.id),
   ]);
   await recordSecurityEvent(env, request, "account.password.update", user.id);
@@ -1887,6 +1916,11 @@ export default {
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/callback") return await finishOAuth(env, request, "kick");
       if (request.method === "POST" && url.pathname === "/api/internal/support/reply") return await replySupportInternally(env, request);
       if (request.method === "POST" && url.pathname === "/api/internal/auth/product/exchange") return await exchangeProductLogin(env, request);
+      if (request.method === "GET" && url.pathname === "/api/internal/account") return await handleInternalProductAccount(env, request, "read");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/profile") return await handleInternalProductAccount(env, request, "profile");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/security/challenge") return await handleInternalProductAccount(env, request, "challenge");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/email") return await handleInternalProductAccount(env, request, "email");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/password") return await handleInternalProductAccount(env, request, "password");
       if (request.method === "POST" && url.pathname === "/api/webhooks/resend") return await receiveSupportEmail(env, request);
       if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !validOrigin(request)) return json(request, { error: "Geçersiz istek kaynağı." }, 403);
       if (request.method === "POST" && url.pathname === "/api/auth/register") return await register(env, request);
