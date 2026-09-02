@@ -572,6 +572,7 @@ async function handleInternalProductAccount(env, request, action) {
   if (action === "challenge") return requestSecurityChallenge(env, request, user);
   if (action === "email") return updateEmail(env, request, user);
   if (action === "password") return updatePassword(env, request, user);
+  if (action === "delete") return deleteAccount(env, request, user);
   return json(request, { error: "Ürün hesap işlemi bulunamadı." }, 404);
 }
 
@@ -1921,6 +1922,7 @@ export default {
       if (request.method === "POST" && url.pathname === "/api/internal/account/security/challenge") return await handleInternalProductAccount(env, request, "challenge");
       if (request.method === "POST" && url.pathname === "/api/internal/account/email") return await handleInternalProductAccount(env, request, "email");
       if (request.method === "POST" && url.pathname === "/api/internal/account/password") return await handleInternalProductAccount(env, request, "password");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/delete") return await handleInternalProductAccount(env, request, "delete");
       if (request.method === "POST" && url.pathname === "/api/webhooks/resend") return await receiveSupportEmail(env, request);
       if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !validOrigin(request)) return json(request, { error: "Geçersiz istek kaynağı." }, 403);
       if (request.method === "POST" && url.pathname === "/api/auth/register") return await register(env, request);
