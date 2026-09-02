@@ -1,8 +1,8 @@
 const SESSION_COOKIE = "__Host-sw_session";
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL = 10 * 60;
-const SW_IDENTITY_VERSION = "1.8.2";
-const SW_IDENTITY_RELEASED_AT = 1788195600;
+const SW_IDENTITY_VERSION = "1.9.0";
+const SW_IDENTITY_RELEASED_AT = 1788377400;
 const EMAIL_CODE_TTL = 10 * 60;
 const EMAIL_CODE_RESEND = 40;
 const REMEMBERED_LOGIN_TTL = 20 * 24 * 60 * 60;
@@ -568,10 +568,15 @@ async function handleInternalProductAccount(env, request, action) {
   const user = await internalProductAccountUser(env, request);
   if (!user) return json(request, { error: "Ürün hesabı doğrulanamadı." }, 401);
   if (action === "read") return json(request, await accountPayload(env, user));
+  if (action === "avatar") return serveProfileAvatar(env, request, user);
   if (action === "profile") return updateProfile(env, request, user);
   if (action === "challenge") return requestSecurityChallenge(env, request, user);
   if (action === "email") return updateEmail(env, request, user);
   if (action === "password") return updatePassword(env, request, user);
+  if (action === "totp-setup") return beginTotpSetup(env, request, user);
+  if (action === "totp-confirm") return confirmTotpSetup(env, request, user);
+  if (action === "totp-recovery") return regenerateRecoveryCodes(env, request, user);
+  if (action === "totp-disable") return disableTotp(env, request, user);
   if (action === "delete") return deleteAccount(env, request, user);
   return json(request, { error: "Ürün hesap işlemi bulunamadı." }, 404);
 }
@@ -1918,10 +1923,15 @@ export default {
       if (request.method === "POST" && url.pathname === "/api/internal/support/reply") return await replySupportInternally(env, request);
       if (request.method === "POST" && url.pathname === "/api/internal/auth/product/exchange") return await exchangeProductLogin(env, request);
       if (request.method === "GET" && url.pathname === "/api/internal/account") return await handleInternalProductAccount(env, request, "read");
+      if (request.method === "GET" && url.pathname === "/api/internal/account/avatar") return await handleInternalProductAccount(env, request, "avatar");
       if (request.method === "POST" && url.pathname === "/api/internal/account/profile") return await handleInternalProductAccount(env, request, "profile");
       if (request.method === "POST" && url.pathname === "/api/internal/account/security/challenge") return await handleInternalProductAccount(env, request, "challenge");
       if (request.method === "POST" && url.pathname === "/api/internal/account/email") return await handleInternalProductAccount(env, request, "email");
       if (request.method === "POST" && url.pathname === "/api/internal/account/password") return await handleInternalProductAccount(env, request, "password");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/totp/setup") return await handleInternalProductAccount(env, request, "totp-setup");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/totp/confirm") return await handleInternalProductAccount(env, request, "totp-confirm");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/totp/recovery/regenerate") return await handleInternalProductAccount(env, request, "totp-recovery");
+      if (request.method === "POST" && url.pathname === "/api/internal/account/totp/disable") return await handleInternalProductAccount(env, request, "totp-disable");
       if (request.method === "POST" && url.pathname === "/api/internal/account/delete") return await handleInternalProductAccount(env, request, "delete");
       if (request.method === "POST" && url.pathname === "/api/webhooks/resend") return await receiveSupportEmail(env, request);
       if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !validOrigin(request)) return json(request, { error: "Geçersiz istek kaynağı." }, 403);
