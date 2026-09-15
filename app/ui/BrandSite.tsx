@@ -31,7 +31,7 @@ const products = [
     color: "acid",
     logo: "/brand/swcreate-logo.png",
     logoClass: "sw-create-app-logo",
-    visual: "/editorial/automation-sculpture.webp",
+    visual: "/editorial/product-sw-create-v2.webp",
     href: "https://swcreate.com",
   },
   {
@@ -42,7 +42,7 @@ const products = [
     state: "CANLI",
     color: "cobalt",
     logo: "/brand/play-streamers-ps-logo.svg",
-    visual: "/editorial/creator-studio.webp",
+    visual: "/editorial/product-play-streamers-v2.webp",
     href: "https://pstreamers.com",
   },
   {
@@ -53,7 +53,7 @@ const products = [
     state: "CANLI",
     color: "coral",
     logo: "/brand/play-connect-pc-logo.svg",
-    visual: "/editorial/product-interface.webp",
+    visual: "/editorial/product-play-connect-v2.webp",
     href: "https://pstreamers.com",
   },
 ];
@@ -330,7 +330,6 @@ export function BrandSite() {
             <p className="eyebrow"><span /> {ui.hero.eyebrow}</p>
             <h1><span>{ui.hero.title[0]}</span><em>{ui.hero.title[1]}</em><span>{ui.hero.title[2]}</span></h1>
             <div className="hero-bottomline">
-              <p className="hero-lead">{ui.hero.lead}</p>
               <div className="hero-actions">
                 <a className="button button-light slide-link" href="#products">{ui.hero.action} <span>↓</span></a>
                 <Link className="text-link identity-link" href="/account/">{ui.hero.enter} <span>↗</span></Link>
