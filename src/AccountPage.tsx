@@ -343,13 +343,18 @@ function AccountPanel() {
 export function AccountPage() {
   return (
     <main className="account-shell auth-entry-shell">
+      <header className="auth-entry-header">
+        <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
+        <span><i /> IDENTITY NETWORK / SECURE</span>
+        <a href="/">STÜDYOYA DÖN <b>↗</b></a>
+      </header>
       <section className="account-art" aria-label="SW Create kimlik alanı">
         <div className="account-core-stage" aria-hidden="true"><SwDualCore className="account-dual-core" label="" /></div>
-        <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
-        <div className="account-signal" aria-hidden="true"><i /> IDENTITY NETWORK / SECURE</div>
-        <div className="account-quote"><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p><span>SW IDENTITY <b>v{SW_IDENTITY_VERSION}</b> · DATA FLOW PROTECTED</span></div>
+        <div className="account-quote"><span>SW IDENTITY / ACCESS LAYER</span><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p></div>
+        <ol className="account-trust-list"><li><b>01</b><span>Tek hesap</span></li><li><b>02</b><span>Güvenli veri akışı</span></li><li><b>03</b><span>Ürünler arası erişim</span></li></ol>
       </section>
       <AccountPanel />
+      <aside className="auth-version-rail" aria-hidden="true">SW IDENTITY v{SW_IDENTITY_VERSION} <span>DATA FLOW PROTECTED</span></aside>
     </main>
   );
 }

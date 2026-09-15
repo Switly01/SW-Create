@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrandSite } from "../app/ui/BrandSite";
 import "../app/globals.css";
 import "../app/brand-character.css";
+import "../app/studio-noir.css";
 import { AccountPage } from "./AccountPage";
 import { MemberHomePage } from "./MemberHomePage";
 import { MemberPage } from "./MemberPage";

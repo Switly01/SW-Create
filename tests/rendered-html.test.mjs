@@ -15,7 +15,20 @@ async function builtAppSource() {
 test("SW Create üretim paketi ana deneyimi içerir", async () => {
   const source = await builtAppSource();
   assert.match(source, /SW CREATE/);
-  assert.match(source, /FİKRİN/);
+  assert.match(source, /Bir fikrin ihtiyaç duyduğu/);
+  assert.match(source, /FİKİR NEREYE/);
+  assert.match(source, /VISUAL FIELD ARCHIVE/);
+  assert.match(source, /TEK BİR/);
+  assert.match(source, /prototype-lab\.webp/);
+  assert.match(source, /OUTPUT MATRIX/);
+  assert.match(source, /WITHOUT/);
+  assert.match(source, /ROTATING/);
+  assert.match(source, /fashion-tech-portrait-v2\.webp/);
+  assert.match(source, /TECHNOLOGY LAB/);
+  assert.match(source, /08 SYSTEMS/);
+  assert.match(source, /robot-vision-lab-v3\.webp/);
+  assert.match(source, /photonics-calibration-v3\.webp/);
+  assert.match(source, /DRAGGED BY SCROLL/);
   assert.match(source, /SW CREATE EDITION/);
   assert.doesNotMatch(source, /Your site is taking shape/);
 });
