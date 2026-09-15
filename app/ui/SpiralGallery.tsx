@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const outerFrames = [
+const galleryFrames = [
   ["/editorial/prototype-lab.webp", "center center"],
   ["/editorial/performance-stage.webp", "center center"],
   ["/editorial/projection-field.webp", "center center"],
@@ -13,9 +13,6 @@ const outerFrames = [
   ["/editorial/signal-console.webp", "center center"],
   ["/editorial/fashion-tech-portrait-v2.webp", "center center"],
   ["/editorial/found-sound-session-v2.webp", "center center"],
-] as const;
-
-const innerFrames = [
   ["/editorial/urban-model-workshop-v2.webp", "center center"],
   ["/editorial/virtual-production-stage-v2.webp", "center center"],
   ["/editorial/print-edition-workshop-v2.webp", "center center"],
@@ -24,9 +21,6 @@ const innerFrames = [
   ["/editorial/film-sound.webp", "center center"],
   ["/editorial/brand-system.webp", "center center"],
   ["/editorial/automation-sculpture.webp", "center center"],
-] as const;
-
-const coreFrames = [
   ["/editorial/robot-vision-lab-v3.webp", "center center"],
   ["/editorial/semiconductor-cleanroom-v3.webp", "center center"],
   ["/editorial/avionics-test-rig-v3.webp", "center center"],
@@ -43,7 +37,9 @@ export function SpiralGallery() {
   useEffect(() => {
     const gallery = galleryRef.current;
     if (!gallery) return;
-    const rings = Array.from(gallery.querySelectorAll<HTMLElement>("[data-gallery-ring]"));
+    const ring = gallery.querySelector<HTMLElement>("[data-gallery-ring]");
+    if (!ring) return;
+    const items = Array.from(ring.querySelectorAll<HTMLElement>("figure"));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
     let frame = 0;
@@ -54,49 +50,50 @@ export function SpiralGallery() {
       pointer.targetX = (event.clientX / window.innerWidth - .5) * 2;
       pointer.targetY = (event.clientY / window.innerHeight - .5) * 2;
     };
+    const onPointerLeave = () => {
+      pointer.targetX = 0;
+      pointer.targetY = 0;
+    };
     const paint = (time: number) => {
       const mobile = window.innerWidth < 700;
-      const scroll = Math.min(window.scrollY / Math.max(window.innerHeight, 1), 1.35);
-      pointer.x += (pointer.targetX - pointer.x) * .045;
-      pointer.y += (pointer.targetY - pointer.y) * .045;
+      pointer.x += (pointer.targetX - pointer.x) * .025;
+      pointer.y += (pointer.targetY - pointer.y) * .025;
       const delta = Math.min(34, Math.max(0, time - previousTime));
       previousTime = time;
-      phase += reducedMotion ? 0 : delta * .000115;
+      phase += reducedMotion ? 0 : delta * .00009;
 
-      rings.forEach((ring, ringIndex) => {
-        const items = Array.from(ring.querySelectorAll<HTMLElement>("figure"));
-        const inner = ringIndex === 1;
-        const core = ringIndex === 2;
-        const direction = inner ? -1 : 1;
-        const radiusX = mobile
-          ? (core ? 70 : inner ? 118 : 205)
-          : Math.min(window.innerWidth * (core ? .105 : inner ? .19 : .34), core ? 150 : inner ? 285 : 520);
-        const radiusZ = mobile ? (core ? 80 : inner ? 105 : 185) : (core ? 150 : inner ? 220 : 360);
-        const pace = core ? 2.1 : inner ? 1.48 : 1;
-        const scrollPace = core ? .55 : inner ? .92 : .62;
-        const ringPhase = direction * phase * pace + scroll * direction * scrollPace;
-        ring.style.transform = `rotateX(${-4 - pointer.y * (core ? 8 : inner ? 6 : 4)}deg) rotateY(${pointer.x * (core ? 12 : inner ? -9 : 7)}deg)`;
+      const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
+      const radiusY = mobile ? 118 : Math.min(window.innerHeight * .2, 188);
+      const radiusZ = mobile ? 270 : 520;
+      ring.style.transform = `rotateX(${pointer.y * -1.4}deg) rotateY(${pointer.x * 2.4}deg)`;
 
-        items.forEach((item, index) => {
-          const angle = index * (Math.PI * 2 / items.length) - Math.PI * .72 + ringPhase;
-          const x = Math.sin(angle) * radiusX;
-          const z = Math.cos(angle) * radiusZ + (core ? 62 : inner ? 36 : 0);
-          const depth = (z + radiusZ) / (radiusZ * 2);
-          const y = Math.sin(angle * (core ? 2.7 : inner ? 2.05 : 1.45)) * (mobile ? (core ? 38 : inner ? 64 : 118) : (core ? 55 : inner ? 96 : 165)) - scroll * (mobile ? 64 : 105);
-          const scale = (core ? .45 : inner ? .58 : .67) + depth * (core ? .22 : inner ? .3 : .42);
-          item.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${-Math.sin(angle) * (core ? 58 : inner ? 46 : 34)}deg) rotateZ(${Math.sin(angle) * (core ? -7.5 : inner ? 5.2 : -3.2)}deg) scale(${scale})`;
-          item.style.opacity = String((core ? .38 : inner ? .28 : .34) + depth * (core ? .58 : inner ? .62 : .66));
-          item.style.filter = `saturate(${.7 + depth * .54}) brightness(${.54 + depth * .52})`;
-          item.style.zIndex = String(Math.round(depth * 100));
-        });
+      items.forEach((item, index) => {
+        const angle = index * (Math.PI * 2 / items.length) - Math.PI * .5 + phase;
+        const x = Math.cos(angle) * radiusX;
+        const z = Math.sin(angle) * radiusZ;
+        const depth = (z + radiusZ) / (radiusZ * 2);
+        const y = Math.sin(angle) * radiusY;
+        const scale = .7 + depth * .34;
+        const orbitVisibility = Math.max(0, Math.min(1, (depth - .8) / .2));
+        const visibility = Math.pow(orbitVisibility, .68);
+        let tangent = Math.atan2(radiusY * Math.cos(angle), -radiusX * Math.sin(angle)) * 180 / Math.PI;
+        if (tangent > 90) tangent -= 180;
+        if (tangent < -90) tangent += 180;
+        item.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${Math.cos(angle) * -12}deg) rotateZ(${tangent}deg) scale(${scale})`;
+        item.style.opacity = String(visibility);
+        item.style.visibility = visibility < .015 ? "hidden" : "visible";
+        item.style.filter = `blur(${(1 - depth) * .8}px) saturate(${.68 + depth * .48}) brightness(${.52 + depth * .48})`;
+        item.style.zIndex = String(Math.round(depth * 100));
       });
       frame = window.requestAnimationFrame(paint);
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.documentElement.addEventListener("mouseleave", onPointerLeave);
     frame = window.requestAnimationFrame(paint);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
+      document.documentElement.removeEventListener("mouseleave", onPointerLeave);
       window.cancelAnimationFrame(frame);
     };
   }, []);
@@ -104,30 +101,13 @@ export function SpiralGallery() {
   return (
     <div className="cinematic-gallery" ref={galleryRef} aria-hidden="true">
       <div className="cinematic-gallery-track cinematic-gallery-ring-primary" data-gallery-ring="outer">
-        {outerFrames.map(([src, position], index) => (
+        {galleryFrames.map(([src, position], index) => (
           <figure key={`${src}-${index}`}>
             <img src={src} alt="" draggable={false} style={{ objectPosition: position }} />
-            <span>{String(index + 1).padStart(2, "0")} / SW</span>
+            <span>SW</span>
           </figure>
         ))}
       </div>
-      <div className="cinematic-gallery-track cinematic-gallery-ring-secondary" data-gallery-ring="inner">
-        {innerFrames.map(([src, position], index) => (
-          <figure key={`${src}-${index}`}>
-            <img src={src} alt="" draggable={false} style={{ objectPosition: position }} />
-            <span>{String(index + outerFrames.length + 1).padStart(2, "0")} / SW</span>
-          </figure>
-        ))}
-      </div>
-      <div className="cinematic-gallery-track cinematic-gallery-ring-core" data-gallery-ring="core">
-        {coreFrames.map(([src, position], index) => (
-          <figure key={`${src}-${index}`}>
-            <img src={src} alt="" draggable={false} style={{ objectPosition: position }} />
-            <span>{String(index + outerFrames.length + innerFrames.length + 1).padStart(2, "0")} / TECH</span>
-          </figure>
-        ))}
-      </div>
-      <div className="cinematic-gallery-count" aria-hidden="true"><strong>28</strong><span>ROTATING<br />FIELD NOTES</span></div>
     </div>
   );
 }

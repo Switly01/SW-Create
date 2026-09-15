@@ -139,16 +139,16 @@ export function AccountClient({
         </header>
 
         <nav className="account-nav" aria-label="Hesap bölümleri">
-          <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><span>01</span>Genel bakış</button>
-          <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}><span>02</span>Profil</button>
-          <button className={view === "security" ? "active" : ""} onClick={() => setView("security")}><span>03</span>Güvenlik</button>
+          <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}>Genel bakış</button>
+          <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}>Profil</button>
+          <button className={view === "security" ? "active" : ""} onClick={() => setView("security")}>Güvenlik</button>
         </nav>
 
         {view === "overview" && (
           <div className="account-view account-overview">
             <div className="account-summary-grid">
               <article><span>SW KİMLİĞİ</span><strong>{account.profile.userId.slice(0, 8).toUpperCase()}</strong><small>Merkezi hesap numaran</small></article>
-              <article><span>ÜRÜN ERİŞİMİ</span><strong>{String(account.entitlements.length).padStart(2, "0")}</strong><small>Etkin ürün bağlantısı</small></article>
+              <article><span>ÜRÜN ERİŞİMİ</span><strong>{account.entitlements.length}</strong><small>Etkin ürün bağlantısı</small></article>
               <article><span>ÜYELİK</span><strong>FREE</strong><small>{memberSince} tarihinden beri</small></article>
             </div>
             <section className="product-access">

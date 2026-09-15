@@ -2,6 +2,7 @@ import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE } from "../../src/api";
 import { savedSwLanguage, SW_LANGUAGES, type SwLanguage } from "../../src/languages";
+import { BRAND_COPY } from "./brandCopy";
 import { SwDualCore } from "./SwDualCore";
 import { SpiralGallery } from "./SpiralGallery";
 
@@ -68,12 +69,6 @@ function playConnectStoreForBrowser() {
   return PLAY_CONNECT_STORES.chromium;
 }
 
-const principles = [
-  ["Bir hesap", "Her SW Create ürününde aynı kimlik, tek merkez ve taşınabilir erişim."],
-  ["Açık kontrol", "Verin, bağlantıların ve ürün izinlerin yalnızca senin yönetiminde."],
-  ["Karakterli üretim", "Kopyalanan kalıplar değil; problemi gerçekten çözen bağımsız ürünler."],
-];
-
 const fieldNotes = [
   { src: "/editorial/prototype-lab.webp", alt: "Robotik üretim koluyla fiziksel prototip geliştiren tasarım ekibi", field: "INDUSTRIAL / R&D", label: "Fiziksel prototipleme" },
   { src: "/editorial/performance-stage.webp", alt: "Kırmızı kumaş ve hareket sensörleriyle sahne performansı", field: "PERFORMANCE / MOTION", label: "Hareket ve sahne" },
@@ -97,16 +92,6 @@ const technologyFrames = [
 
 const languages = SW_LANGUAGES;
 type Language = SwLanguage;
-const localizedHero: Record<Language, { products: string; method: string; edition: string; account: string; eyebrow: string; title: [string, string, string]; lead: string; action: string; enter: string }> = {
-  tr: { products: "Ürünler", method: "Neler yapıyoruz", edition: "SW üyeliği", account: "SW hesabı", eyebrow: "Bağımsız teknoloji stüdyosu", title: ["Fikrin", "kendi çekim", "alanı olsun."], lead: "Yaratıcıların ve dijital toplulukların etrafında dönen karakterli ürünler tasarlıyor, geliştiriyor ve büyütüyoruz.", action: "Ürünleri keşfet", enter: "SW merkezine gir" },
-  en: { products: "Products", method: "What we do", edition: "Edition", account: "SW account", eyebrow: "Independent technology studio", title: ["Give your", "idea its own", "gravity."], lead: "We design, build and grow distinctive products around creators and digital communities.", action: "Explore products", enter: "Enter SW center" },
-  de: { products: "Produkte", method: "Was wir tun", edition: "Edition", account: "SW Konto", eyebrow: "Unabhängiges Technologiestudio", title: ["Deine Idee", "braucht eigene", "Anziehungskraft."], lead: "Wir gestalten und entwickeln charaktervolle Produkte für Kreative und digitale Gemeinschaften.", action: "Produkte entdecken", enter: "SW Zentrale öffnen" },
-  es: { products: "Productos", method: "Qué hacemos", edition: "Edition", account: "Cuenta SW", eyebrow: "Estudio tecnológico independiente", title: ["Que tu idea", "tenga su propia", "gravedad."], lead: "Diseñamos y desarrollamos productos con carácter para creadores y comunidades digitales.", action: "Descubrir productos", enter: "Entrar al centro SW" },
-  fr: { products: "Produits", method: "Notre savoir-faire", edition: "Edition", account: "Compte SW", eyebrow: "Studio technologique indépendant", title: ["Donnez à", "votre idée sa", "gravité."], lead: "Nous concevons et développons des produits distinctifs pour les créateurs et les communautés numériques.", action: "Découvrir les produits", enter: "Entrer dans SW" },
-  ru: { products: "Продукты", method: "Что мы делаем", edition: "Edition", account: "Аккаунт SW", eyebrow: "Независимая технологическая студия", title: ["Пусть у", "идеи будет", "своя гравитация."], lead: "Мы создаём выразительные продукты для авторов и цифровых сообществ.", action: "Открыть продукты", enter: "Войти в центр SW" },
-  ar: { products: "المنتجات", method: "ماذا نصنع", edition: "Edition", account: "حساب SW", eyebrow: "استوديو تقني مستقل", title: ["لِفكرتك", "جاذبيتها", "الخاصة."], lead: "نصمم ونطور منتجات مميزة للمبدعين والمجتمعات الرقمية.", action: "اتبع الإشارة", enter: "ادخل مركز SW" },
-  ja: { products: "製品", method: "できること", edition: "Edition", account: "SWアカウント", eyebrow: "独立系テクノロジースタジオ", title: ["アイデアに", "独自の引力を", "与えよう。"], lead: "クリエイターとデジタルコミュニティのために、個性的な製品を設計・開発します。", action: "製品を見る", enter: "SWセンターへ" },
-};
 
 function productVisitorId() {
   const storageKey = "sw-product-visitor";
@@ -125,8 +110,14 @@ export function BrandSite() {
   const [systemStats, setSystemStats] = useState({ activeUsers: "—", registeredAccounts: "—", activeProducts: "—" });
   const cursorOrbitRef = useRef<HTMLDivElement>(null);
   const languageControlRef = useRef<HTMLDivElement>(null);
-  const ui = localizedHero[language];
+  const ui = BRAND_COPY[language];
   const activeLanguage = languages.find(([code]) => code === language) ?? languages[0];
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+    document.title = `SW Create — ${BRAND_COPY[language].hero.eyebrow}`;
+  }, [language]);
 
   useEffect(() => {
     const closeLanguage = (event: PointerEvent) => {
@@ -220,7 +211,6 @@ export function BrandSite() {
   function chooseLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
     setLanguageOpen(false);
-    document.documentElement.lang = nextLanguage;
     window.localStorage.setItem("sw-language", nextLanguage);
   }
 
@@ -302,158 +292,153 @@ export function BrandSite() {
   return (
     <main className="site-shell sw-character-site signal-editorial-site" dir={language === "ar" ? "rtl" : "ltr"}>
       <div ref={cursorOrbitRef} className="cursor-orbit" aria-hidden="true" />
-      <div className="page-signal-rail" aria-hidden="true"><span /><b>SW / 01—06</b><i>SCROLL</i></div>
+      <div className="page-signal-rail" aria-hidden="true"><span /><b>SW / FIELD</b><i>{ui.hero.scroll}</i></div>
 
       <header className="topbar">
-        <Link className="brand" href="#top" aria-label="SW Create ana sayfa">
+        <Link className="brand" href="#top" aria-label={ui.hero.home}>
           <span className="brand-mark"><Image src="/brand/swcreate-logo.png" alt="" width={42} height={42} priority /></span>
-          <span className="brand-word"><strong>SW CREATE</strong><small>BAĞIMSIZ DİJİTAL STÜDYO</small></span>
+          <span className="brand-word"><strong>SW CREATE</strong><small>{ui.brandSubtitle}</small></span>
         </Link>
-        <span className="topbar-signal" aria-hidden="true"><i /> SW CREATE · BAĞIMSIZ DİJİTAL STÜDYO</span>
-        <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label="Menüyü aç veya kapat"><span /> <span /></button>
-        <nav className={menuOpen ? "nav-links open" : "nav-links"} aria-label="Ana menü">
-          <a href="#products" onClick={() => setMenuOpen(false)}>{ui.products}</a>
-          <a href="#capabilities" onClick={() => setMenuOpen(false)}>{ui.method}</a>
-          <a href="#edition" onClick={() => setMenuOpen(false)}>{ui.edition}</a>
+        <span className="topbar-signal" aria-hidden="true"><i /> SW CREATE · {ui.brandSubtitle}</span>
+        <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={ui.nav.menu}><span /> <span /></button>
+        <nav className={menuOpen ? "nav-links open" : "nav-links"} aria-label={ui.nav.main}>
+          <a href="#products" onClick={() => setMenuOpen(false)}>{ui.nav.products}</a>
+          <a href="#capabilities" onClick={() => setMenuOpen(false)}>{ui.nav.method}</a>
+          <a href="#edition" onClick={() => setMenuOpen(false)}>{ui.nav.edition}</a>
           <div className="language-control" ref={languageControlRef}>
-            <button type="button" className="language-button" onClick={() => setLanguageOpen(!languageOpen)} aria-expanded={languageOpen} aria-label="Dil seçimi"><img src={activeLanguage[1]} alt="" /><span>{language.toUpperCase()}</span></button>
-            {languageOpen && <div className="language-menu" role="menu" aria-label="Dil seçimi">
+            <button type="button" className="language-button" onClick={() => setLanguageOpen(!languageOpen)} aria-expanded={languageOpen} aria-label={ui.nav.language}><img src={activeLanguage[1]} alt="" /><span>{language.toUpperCase()}</span></button>
+            {languageOpen && <div className="language-menu" role="menu" aria-label={ui.nav.language}>
               {languages.map(([code, flag, label]) => <button type="button" key={code} className={language === code ? "active" : ""} onClick={() => chooseLanguage(code)} role="menuitem"><img src={flag} alt="" />{label}</button>)}
             </div>}
           </div>
-          <Link className="nav-account identity-link" href="/account/">{ui.account} <span>↗</span></Link>
+          <Link className="nav-account identity-link" href="/account/">{ui.nav.account} <span>↗</span></Link>
         </nav>
       </header>
 
       <section id="top" className="hero">
         <SpiralGallery />
-        <div className="hero-backtype" aria-hidden="true"><span>CREATE</span><span>WITHOUT</span><span>LIMITS</span></div>
+        <div className="hero-backtype" aria-hidden="true"><span>{ui.work.items[0].category}</span><span>{ui.work.items[2].category}</span><span>{ui.work.items[3].category}</span></div>
         <aside className="hero-field-card" aria-hidden="true">
-          <span>SW / OUTPUT MATRIX</span><strong>∞</strong>
-          <div><b>CODE</b><b>OBJECT</b><b>MOTION</b><b>SPACE</b></div>
+          <span>SW / {ui.products.label}</span><strong>∞</strong>
+          <div><b>{ui.kinetic.rows[0][0]}</b><b>{ui.kinetic.rows[0][2]}</b><b>{ui.kinetic.rows[1][1]}</b><b>{ui.kinetic.rows[2][2]}</b></div>
         </aside>
-        <div className="hero-scene-meta" aria-hidden="true"><span>INTERACTIVE / 01</span><span>MOVE · SCROLL · DISCOVER</span></div>
+        <div className="hero-scene-meta" aria-hidden="true"><span>{ui.hero.interactive}</span><span>{ui.hero.discover}</span></div>
         <div className="hero-grid" aria-hidden="true" />
-        <aside className="hero-index" aria-hidden="true"><b>01</b><span>SW / INDEPENDENT DIGITAL STUDIO</span></aside>
+        <aside className="hero-index" aria-hidden="true"><b>SW</b><span>{ui.brandSubtitle}</span></aside>
         <div className="hero-stage">
           <div className="hero-copy">
-            <p className="eyebrow"><span /> {ui.eyebrow}</p>
-            <h1><span>{ui.title[0]}</span><em>{ui.title[1]}</em><span>{ui.title[2]}</span></h1>
+            <p className="eyebrow"><span /> {ui.hero.eyebrow}</p>
+            <h1><span>{ui.hero.title[0]}</span><em>{ui.hero.title[1]}</em><span>{ui.hero.title[2]}</span></h1>
             <div className="hero-bottomline">
-              <p className="hero-lead">{ui.lead}</p>
+              <p className="hero-lead">{ui.hero.lead}</p>
               <div className="hero-actions">
-                <a className="button button-light slide-link" href="#products">{ui.action} <span>↓</span></a>
-                <Link className="text-link identity-link" href="/account/">{ui.enter} <span>↗</span></Link>
+                <a className="button button-light slide-link" href="#products">{ui.hero.action} <span>↓</span></a>
+                <Link className="text-link identity-link" href="/account/">{ui.hero.enter} <span>↗</span></Link>
               </div>
             </div>
           </div>
           <aside className="hero-machine">
-            <div className="hero-machine-head"><span>SW CORE / LIVE</span><i /></div>
-            <div className="hero-core" aria-label="SW Create ürün çekirdeği">
+            <div className="hero-machine-head"><span>SW CORE / {ui.products.items[0].state}</span><i /></div>
+            <div className="hero-core" aria-label={ui.products.items[0].kind}>
               <div className="orbit orbit-one" aria-hidden="true" />
               <div className="orbit orbit-two" aria-hidden="true" />
               <div className="orbit orbit-three" aria-hidden="true" />
               <div className="core-image"><SwDualCore className="core-logo-shell" /></div>
             </div>
-            <div className="hero-machine-links"><a href="https://swcreate.com" aria-label="SW Create ana sayfası">SW CREATE <span>01</span></a><a href="https://pstreamers.com" target="_blank" rel="noreferrer" aria-label="Play Streamers sitesini aç">PLAY STREAMERS <span>02 ↗</span></a></div>
+            <div className="hero-machine-links"><a href="https://swcreate.com" aria-label={ui.hero.home}>SW CREATE <span>↗</span></a><a href="https://pstreamers.com" target="_blank" rel="noreferrer" aria-label={ui.hero.streamers}>PLAY STREAMERS <span>↗</span></a></div>
           </aside>
         </div>
-        <div className="hero-broadcast" aria-hidden="true"><div>INDEPENDENT DIGITAL STUDIO · SOFTWARE · DESIGN · FILM · SOUND · HARDWARE · EXPERIENCE · </div><div>INDEPENDENT DIGITAL STUDIO · SOFTWARE · DESIGN · FILM · SOUND · HARDWARE · EXPERIENCE · </div></div>
-        <p className="hero-scroll-note" aria-hidden="true">SCROLL TO EXPLORE <span>↓</span></p>
+        <div className="hero-broadcast" aria-hidden="true"><div>{ui.brandSubtitle} · {ui.kinetic.rows.flat().join(" · ")} · </div><div>{ui.brandSubtitle} · {ui.kinetic.rows.flat().join(" · ")} · </div></div>
+        <p className="hero-scroll-note" aria-hidden="true">{ui.hero.scroll} <span>↓</span></p>
       </section>
 
-      <section className="system-strip" aria-label="SW Create sistem özeti" aria-live="polite">
-        <p><span className="pulse-dot" /> SW SİSTEM DİZİNİ</p>
-        <div><strong>{systemStats.activeUsers}</strong><span>SW ürünlerini aktif kullanan</span></div>
-        <div><strong>{systemStats.registeredAccounts}</strong><span>Kayıtlı SW hesabı</span></div>
-        <div><strong>{systemStats.activeProducts}</strong><span>Aktif ürün sayısı</span></div>
+      <section className="system-strip" aria-label={ui.system.title} aria-live="polite">
+        <p><span className="pulse-dot" /> {ui.system.title}</p>
+        <div><strong>{systemStats.activeUsers}</strong><span>{ui.system.activeUsers}</span></div>
+        <div><strong>{systemStats.registeredAccounts}</strong><span>{ui.system.accounts}</span></div>
+        <div><strong>{systemStats.activeProducts}</strong><span>{ui.system.products}</span></div>
       </section>
 
       <section className="field-atlas-section" aria-labelledby="field-atlas-title">
         <header className="field-atlas-heading">
-          <p>SW CREATE / VISUAL FIELD ARCHIVE · 01—07</p>
-          <h2 id="field-atlas-title">TEK BİR<br /><em>FORMATIMIZ</em><br />YOK.</h2>
-          <span>Yazılımdan sahneye, donanımdan filme; fikrin ihtiyaç duyduğu alanı kuruyoruz.</span>
+          <p>{ui.field.kicker}</p>
+          <h2 id="field-atlas-title">{ui.field.title[0]}<br /><em>{ui.field.title[1]}</em><br />{ui.field.title[2]}</h2>
+          <span>{ui.field.intro}</span>
         </header>
-        <div className="field-atlas" role="list" aria-label="SW Create üretim alanlarından seçkiler">
+        <div className="field-atlas" role="list" aria-label={ui.field.list}>
           {fieldNotes.map((note, index) => (
             <figure className={`field-shot field-shot-${index + 1}`} key={note.src} role="listitem">
-              <div className="field-shot-image"><Image src={note.src} alt={note.alt} fill /></div>
-              <figcaption><span>{String(index + 1).padStart(2, "0")} / {note.field}</span><strong>{note.label}</strong></figcaption>
+              <div className="field-shot-image"><Image src={note.src} alt={ui.field.items[index].alt} fill /></div>
+              <figcaption><span>{note.field}</span><strong>{ui.field.items[index].label}</strong></figcaption>
             </figure>
           ))}
         </div>
-        <aside className="field-atlas-note" aria-hidden="true"><span>7 DISCIPLINES</span><b>ONE<br />STUDIO</b></aside>
+        <aside className="field-atlas-note" aria-hidden="true"><span>{ui.field.aside[0]}</span><b>{ui.field.aside[1]}</b></aside>
       </section>
 
       <section id="capabilities" className="work-spectrum-section">
         <header className="work-spectrum-heading">
-          <p>SW / MULTIDISCIPLINARY STUDIO</p>
-          <h2>Bir fikrin ihtiyaç duyduğu <em>her şey.</em></h2>
-          <span>Tek bir uzmanlığa sıkışmıyoruz. Stratejiden yazılıma, kimlikten içeriğe ve fiziksel-dijital deneyimlere kadar fikri çalışan bir bütüne dönüştürüyoruz.</span>
+          <p>{ui.work.kicker}</p>
+          <h2>{ui.work.title[0]} <em>{ui.work.title[1]}</em></h2>
+          <span>{ui.work.intro}</span>
         </header>
         <div className="work-spectrum-grid">
-          <article className="work-tile work-tile-product"><figure><Image src="/editorial/product-interface.webp" alt="Mobil ürün ve arayüz tasarımı" fill /></figure><div><span>01 / ÜRÜN</span><h3>Dijital ürünler</h3><p>Web, mobil, kullanıcı deneyimi ve ölçeklenebilir ürün sistemleri.</p></div></article>
-          <article className="work-tile work-tile-automation"><figure><Image src="/editorial/automation-sculpture.webp" alt="Otomasyon ve veri sistemlerini temsil eden dijital yerleştirme" fill /></figure><div><span>02 / TEKNOLOJİ</span><h3>AI & otomasyon</h3><p>Tekrarlanan işi azaltan akıllı akışlar, veri köprüleri ve özel araçlar.</p></div></article>
-          <article className="work-tile work-tile-brand"><figure><Image src="/editorial/brand-system.webp" alt="Marka kimliği ve editoryal tasarım materyalleri" fill /></figure><div><span>03 / TASARIM</span><h3>Marka sistemleri</h3><p>Kimlik, yön, tipografi ve dijitalde yaşayan görsel dil.</p></div></article>
-          <article className="work-tile work-tile-space"><figure><Image src="/editorial/interactive-space.webp" alt="Etkileşimli ışık ve mekân deneyimi" fill /></figure><div><span>04 / DENEYİM</span><h3>Etkileşimli dünyalar</h3><p>WebGL, gerçek zamanlı görseller ve fiziksel-dijital deneyimler.</p></div></article>
-          <article className="work-tile work-tile-film"><figure><Image src="/editorial/film-sound.webp" alt="Film, ses ve içerik prodüksiyon ekipmanı" fill /></figure><div><span>05 / İÇERİK</span><h3>Film & ses</h3><p>Hareketli görüntü, ses tasarımı ve hikâyeyi taşıyan içerik.</p></div></article>
-          <article className="work-tile work-tile-community"><figure><Image src="/editorial/creator-collective.webp" alt="Yaratıcı topluluğu temsil eden sinematik mekân" fill /></figure><div><span>06 / TOPLULUK</span><h3>Platform & topluluk</h3><p>İnsanları ürün etrafında buluşturan sürdürülebilir dijital alanlar.</p></div></article>
+          {[
+            ["product", "/editorial/product-interface.webp"], ["automation", "/editorial/automation-sculpture.webp"], ["brand", "/editorial/brand-system.webp"],
+            ["space", "/editorial/interactive-space.webp"], ["film", "/editorial/film-sound.webp"], ["community", "/editorial/creator-collective.webp"],
+          ].map(([kind, src], index) => <article className={`work-tile work-tile-${kind}`} key={kind}><figure><Image src={src} alt={ui.work.items[index].alt} fill /></figure><div><span>{ui.work.items[index].category}</span><h3>{ui.work.items[index].title}</h3><p>{ui.work.items[index].copy}</p></div></article>)}
         </div>
       </section>
 
       <section id="technology" className="technology-section" aria-labelledby="technology-title">
         <header className="technology-heading">
-          <p>SW / TECHNOLOGY LAB · 08 SYSTEMS</p>
-          <h2 id="technology-title">TEKNOLOJİYİ<br /><em>ARAÇ DEĞİL,</em><br />MALZEME GİBİ<br />İŞLİYORUZ.</h2>
-          <span>Yapay zekâ, otomasyon, ürün altyapısı ve yeni nesil arayüzleri araştırıyor; işe yarayan fikirleri dijital ürünlere, deneyimlere ve prototiplere dönüştürüyoruz.</span>
+          <p>{ui.tech.kicker}</p>
+          <h2 id="technology-title">{ui.tech.title[0]}<br /><em>{ui.tech.title[1]}</em><br />{ui.tech.title[2]}<br />{ui.tech.title[3]}</h2>
+          <span>{ui.tech.intro}</span>
         </header>
-        <div className="technology-reel" role="list" aria-label="SW Create teknoloji çalışma alanları">
+        <div className="technology-reel" role="list" aria-label={ui.tech.list}>
           {technologyFrames.map((frame, index) => (
             <figure className={`technology-frame technology-frame-${index + 1}`} key={frame.src} role="listitem">
-              <Image src={frame.src} alt={frame.alt} fill />
+              <Image src={frame.src} alt={ui.tech.items[index].alt} fill />
               <figcaption>
-                <span>{String(index + 1).padStart(2, "0")} / {frame.field}</span>
-                <strong>{frame.label}</strong>
-                <small>{frame.note}</small>
+                <span>{ui.tech.items[index].field}</span>
+                <strong>{ui.tech.items[index].title}</strong>
+                <small>{ui.tech.items[index].note}</small>
               </figcaption>
             </figure>
           ))}
         </div>
-        <div className="technology-status" aria-hidden="true"><i /> LIVE R&amp;D <span>08 ACTIVE FIELDS</span></div>
+        <div className="technology-status" aria-hidden="true"><i /> {ui.tech.status}</div>
       </section>
 
-      <section className="showreel-section" aria-label="SW Create çalışma yaklaşımı">
-        <div className="showreel-image"><Image src="/editorial/urban-light-installation.webp" alt="Kırmızı ışık panelleriyle şekillenen kamusal dijital yerleştirme" fill /></div>
+      <section className="showreel-section" aria-label={ui.showreel.aria}>
+        <div className="showreel-image"><Image src="/editorial/urban-light-installation.webp" alt={ui.showreel.alt} fill /></div>
         <div className="showreel-noise" aria-hidden="true" />
-        <p className="showreel-kicker">SW CREATE / FIELD NOTE 02</p>
-        <h2>FİKİR NEREYE<br />GİDERSE, <em>BİZ DE</em><br />ORAYA GİDERİZ.</h2>
-        <div className="showreel-caption"><span>NO FIXED DISCIPLINE</span><p>Ürün, görüntü, sistem, ses veya mekân. Çözümün formatını alışkanlık değil, fikrin kendisi belirler.</p></div>
-        <div className="showreel-counter" aria-hidden="true"><strong>02</strong><span>06</span></div>
-        <div className="showreel-stamp" aria-hidden="true">BUILD<br />BEYOND<br />FORMAT</div>
+        <p className="showreel-kicker">{ui.showreel.label}</p>
+        <h2>{ui.showreel.title[0]}<br />{ui.showreel.title[1]}<br />{ui.showreel.title[2]}</h2>
+        <div className="showreel-caption"><span>{ui.showreel.discipline}</span><p>{ui.showreel.copy}</p></div>
+        <div className="showreel-stamp" aria-hidden="true">{ui.showreel.stamp.map((line) => <span key={line}>{line}<br /></span>)}</div>
       </section>
 
-      <section className="kinetic-interlude" aria-label="SW Create üretim alanları">
-        <div><span>SOFTWARE</span><i>·</i><em>DESIGN</em><i>·</i><span>PRODUCT</span></div>
-        <div><em>AI</em><i>·</i><span>AUTOMATION</span><i>·</i><em>DATA</em></div>
-        <div><span>FILM</span><i>·</i><em>SOUND</em><i>·</i><span>EXPERIENCE</span></div>
+      <section className="kinetic-interlude" aria-label={ui.kinetic.aria}>
+        {ui.kinetic.rows.map((row, rowIndex) => <div key={rowIndex}>{row.map((term, index) => <span key={term}>{index > 0 && <i>·</i>}{index % 2 ? <em>{term}</em> : term}</span>)}</div>)}
       </section>
 
       <section id="products" className="products-section">
         <div className="products-sticky">
           <div className="section-heading">
-            <p className="section-number">03 / ÜRÜNLER</p>
-            <h2>HER ÜRÜN BİR<br /><span>SW SİNYALİ.</span></h2>
-            <p>Her ürün kendi problemini çözer. SW hesabı; kimliği, erişimi ve gelecekteki üyelik avantajlarını ürünler arasında taşır.</p>
+            <p className="section-number">{ui.products.label}</p>
+            <h2>{ui.products.title[0]}<br /><span>{ui.products.title[1]}</span></h2>
+            <p>{ui.products.intro}</p>
           </div>
-          <div className="product-progress" aria-hidden="true"><span /><b>DRAGGED BY SCROLL</b><i>01 — 03</i></div>
+          <div className="product-progress" aria-hidden="true"><span /><b>{ui.products.progress}</b></div>
           <div className="product-gallery">
             {products.map((product, index) => (
               <a className={`product-card product-card-${index + 1} ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
                 <div className="product-visual"><Image src={product.visual} alt="" fill /></div>
-                <div className="product-card-head"><span>{String(index + 1).padStart(2, "0")}</span><b>{product.group === "site" ? "PLATFORM" : "CONNECTOR"}</b><i>{product.state}</i></div>
-                <div className="product-main"><div className="product-brand-mark" aria-hidden="true">{product.logoClass ? <span className={product.logoClass} /> : <Image src={product.logo} alt="" width={96} height={96} />}</div><p>{product.kind}</p><h3>{product.name}</h3><span>{product.copy}</span></div>
-                <div className="product-side"><span className="product-command">OPEN PRODUCT</span><span className="arrow">↗</span></div>
+                <div className="product-card-head"><b>{product.group === "site" ? ui.products.platform : ui.products.connector}</b><i>{ui.products.items[index].state}</i></div>
+                <div className="product-main"><div className="product-brand-mark" aria-hidden="true">{product.logoClass ? <span className={product.logoClass} /> : <Image src={product.logo} alt="" width={96} height={96} />}</div><p>{ui.products.items[index].kind}</p><h3>{product.name}</h3><span>{ui.products.items[index].copy}</span></div>
+                <div className="product-side"><span className="product-command">{ui.products.open}</span><span className="arrow">↗</span></div>
               </a>
             ))}
           </div>
@@ -461,11 +446,11 @@ export function BrandSite() {
       </section>
 
       <section id="studio" className="studio-section">
-        <div className="studio-statement"><p className="section-number">04 / SW YÖNETİMİ</p><h2>ŞABLON DEĞİL.<br /><i>KENDİ FİZİĞİMİZİ</i> KURUYORUZ.</h2></div>
+        <div className="studio-statement"><p className="section-number">{ui.studio.label}</p><h2>{ui.studio.title[0]}<br /><i>{ui.studio.title[1]}</i></h2></div>
         <div className="studio-workbench">
-          <div className="studio-seal" aria-hidden="true"><span className="studio-logo-mark"><Image src="/brand/swcreate-logo.png" alt="" width={150} height={150} /></span><small>BUILD / VERIFY / EVOLVE</small></div>
+          <div className="studio-seal" aria-hidden="true"><span className="studio-logo-mark"><Image src="/brand/swcreate-logo.png" alt="" width={150} height={150} /></span><small>{ui.studio.seal}</small></div>
           <div className="principle-grid">
-            {principles.map(([title, copy], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><h3>{title}</h3><p>{copy}</p></div><b aria-hidden="true">↘</b></article>)}
+            {ui.studio.principles.map(({ title, copy }) => <article key={title}><div><h3>{title}</h3><p>{copy}</p></div><b aria-hidden="true">↘</b></article>)}
           </div>
         </div>
         <div className="studio-cinema" aria-hidden="true">
@@ -473,27 +458,25 @@ export function BrandSite() {
           <figure><Image src="/editorial/hardware-bench.webp" alt="" fill /></figure>
           <figure><Image src="/editorial/material-object-study.webp" alt="" fill /></figure>
         </div>
-        <div className="studio-note"><span>SW / METHOD</span><p>Küçük bir ekibin hızını, uzun ömürlü bir ürün ekosisteminin disipliniyle birleştiriyoruz. Her sürüm daha az gürültü, daha fazla kontrol.</p></div>
+        <div className="studio-note"><span>{ui.studio.noteLabel}</span><p>{ui.studio.note}</p></div>
       </section>
 
       <section id="edition" className="edition-section">
         <div className="edition-grid" aria-hidden="true" />
-        <div className="edition-intro"><div className="edition-badge">SW CREATE EDITION</div><div className="edition-copy"><p className="section-number">05 / TEK PASAPORT</p><h2>BİR KİMLİK.<br />BÜTÜN <span>PRO</span> AVANTAJLARI.</h2><p>SW Create Edition; SW Create çatısı altındaki ürünlerin avantajlarını, erken erişimleri ve özel topluluk ayrıcalıklarını tek üyelikte buluşturur.</p></div><aside><strong>ONE ID</strong><span>ALL PRODUCTS</span></aside></div>
+        <div className="edition-intro"><div className="edition-badge">{ui.edition.badge}</div><div className="edition-copy"><p className="section-number">{ui.edition.label}</p><h2>{ui.edition.title[0]}<br /><span>{ui.edition.title[1]}</span></h2><p>{ui.edition.intro}</p></div><aside><strong>{ui.edition.oneId}</strong><span>{ui.edition.allProducts}</span></aside></div>
         <div className="plan-grid plan-grid-three">
-          <article className="plan-card"><span>01 / SW CREATE FREE</span><h3>Ücretsiz merkez hesabı</h3><strong>₺0</strong><ul><li>Temel ürün özellikleri</li><li>Standart veri aralığı</li><li>Topluluk desteği</li></ul><Link className="identity-link" href="/account/?mode=register">Ücretsiz hesap oluştur <b>↗</b></Link></article>
-          <article className="plan-card pro"><span>02 / SW CREATE PRO EDITION</span><h3>Stüdyo avantajları</h3><strong>YAKINDA</strong><ul><li>Güncellemelere önceden erişim</li><li>Özel Discord rolü ve hızlı destek</li><li>Yeni gelir araçlarına erken erişim</li></ul><Link className="identity-link" href="/account/?plan=pro">Pro listesine katıl <b>↗</b></Link></article>
-          <article className="plan-card edition"><span>03 / PRODUCT PRO EDITION</span><h3>Bütün ürünlerin Pro erişimi</h3><strong>YAKINDA</strong><ul><li>Tüm SW ürünlerinde Pro</li><li>Yeni ürünlere erken erişim</li><li>Öncelikli ürün desteği</li></ul><Link className="identity-link" href="/account/?plan=edition">Edition listesine katıl <b>↗</b></Link></article>
+          {ui.edition.plans.map((plan, index) => <article className={`plan-card ${index === 1 ? "pro" : index === 2 ? "edition" : ""}`} key={plan.label}><span>{plan.label}</span><h3>{plan.title}</h3><strong>{plan.status}</strong><ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul><Link className="identity-link" href={index === 0 ? "/account/?mode=register" : index === 1 ? "/account/?plan=pro" : "/account/?plan=edition"}>{plan.action} <b>↗</b></Link></article>)}
         </div>
       </section>
 
-      <section className="closing-section"><p>Bir sonraki ürünün<br />çekim alanına gir.</p><Link className="identity-link" href="/account/?mode=register">SW hesabını oluştur <span>↗</span></Link></section>
+      <section className="closing-section"><p>{ui.closing.title[0]}<br />{ui.closing.title[1]}</p><Link className="identity-link" href="/account/?mode=register">{ui.closing.action} <span>↗</span></Link></section>
 
       <footer className="site-footer">
-        <div className="footer-identity"><Link className="brand footer-brand" href="#top" aria-label="Sayfanın başına dön"><Image src="/brand/swcreate-logo.png" alt="" width={52} height={52} /></Link><p>Bağımsız fikirler için karakterli dijital ürünler.</p></div>
-        <div className="footer-links"><strong>SW CREATE</strong><Link href="#products">Ürünler</Link><Link href="#studio">SW yönetimi</Link><Link href="#edition">SW Create Edition</Link></div>
-        <div className="footer-links"><strong>GÜVEN</strong><Link href="/privacy">Gizlilik</Link><Link href="/terms">Koşullar</Link><a href="mailto:swcreate.info@gmail.com">swcreate.info@gmail.com</a></div>
-        <div className="footer-privacy"><span className="pulse-dot" /><strong>GİZLİLİK ÖNCELİKLİ</strong><p>Kimlik ve erişim verilerin yalnızca seçtiğin SW ürünlerini çalıştırmak için kullanılır.</p></div>
-        <span className="footer-copyright">© 2026 SW Create · Bağımsız dijital stüdyo</span>
+        <div className="footer-identity"><Link className="brand footer-brand" href="#top" aria-label={ui.footer.top}><Image src="/brand/swcreate-logo.png" alt="" width={52} height={52} /></Link><p>{ui.footer.tagline}</p></div>
+        <div className="footer-links"><strong>SW CREATE</strong><Link href="#products">{ui.footer.products}</Link><Link href="#studio">{ui.footer.management}</Link><Link href="#edition">{ui.footer.edition}</Link></div>
+        <div className="footer-links"><strong>{ui.footer.trust}</strong><Link href="/privacy">{ui.footer.privacy}</Link><Link href="/terms">{ui.footer.terms}</Link><a href="mailto:swcreate.info@gmail.com">swcreate.info@gmail.com</a></div>
+        <div className="footer-privacy"><span className="pulse-dot" /><strong>{ui.footer.privacyTitle}</strong><p>{ui.footer.privacyCopy}</p></div>
+        <span className="footer-copyright">© 2026 SW Create · {ui.footer.copyright}</span>
       </footer>
     </main>
   );
