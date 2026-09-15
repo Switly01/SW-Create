@@ -2841,3 +2841,20 @@ body {
   .signal-editorial-site .field-shot:hover,
   .signal-editorial-site .products-section .product-gallery { transform: none !important; }
 }
+
+/* Independent section imagery: the hero orbit keeps its full archive while
+   every editorial area below uses a separate set of photographs. */
+.signal-editorial-site .studio-cinema {
+  grid-template-columns: 1fr 1.2fr .86fr .92fr 1.08fr;
+}
+.signal-editorial-site .studio-cinema figure:nth-child(4) { transform: translateY(28px); }
+.signal-editorial-site .studio-cinema figure:nth-child(5) { transform: translateY(-12px); }
+.signal-editorial-site .closing-section {
+  background-image:
+    linear-gradient(90deg, rgba(4,4,5,.92), rgba(4,4,5,.25) 58%, rgba(4,4,5,.7)),
+    url("/editorial/closing-digital-stage-v2.webp");
+}
+
+@media (max-width: 760px) {
+  .signal-editorial-site .studio-cinema figure:nth-child(n+3) { display: none; }
+}

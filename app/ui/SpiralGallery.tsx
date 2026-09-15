@@ -1,13 +1,34 @@
 import { useEffect, useRef } from "react";
 
 const galleryFrames = [
+  ["/editorial/prototype-lab.webp", "center center"],
+  ["/editorial/performance-stage.webp", "center center"],
+  ["/editorial/projection-field.webp", "center center"],
+  ["/editorial/hardware-bench.webp", "center center"],
+  ["/editorial/urban-light-installation.webp", "center center"],
+  ["/editorial/film-production-set.webp", "center center"],
+  ["/editorial/material-object-study.webp", "center center"],
+  ["/editorial/creator-studio.webp", "right center"],
+  ["/editorial/creator-collective.webp", "center center"],
+  ["/editorial/signal-console.webp", "center center"],
   ["/editorial/fashion-tech-portrait-v2.webp", "center center"],
   ["/editorial/found-sound-session-v2.webp", "center center"],
   ["/editorial/urban-model-workshop-v2.webp", "center center"],
   ["/editorial/virtual-production-stage-v2.webp", "center center"],
   ["/editorial/print-edition-workshop-v2.webp", "center center"],
-  ["/editorial/signal-console.webp", "center center"],
-  ["/editorial/creator-studio.webp", "right center"],
+  ["/editorial/product-interface.webp", "center center"],
+  ["/editorial/interactive-space.webp", "center center"],
+  ["/editorial/film-sound.webp", "center center"],
+  ["/editorial/brand-system.webp", "center center"],
+  ["/editorial/automation-sculpture.webp", "center center"],
+  ["/editorial/robot-vision-lab-v3.webp", "center center"],
+  ["/editorial/semiconductor-cleanroom-v3.webp", "center center"],
+  ["/editorial/avionics-test-rig-v3.webp", "center center"],
+  ["/editorial/liquid-compute-rack-v3.webp", "center center"],
+  ["/editorial/autonomous-robot-fleet-v3.webp", "center center"],
+  ["/editorial/haptic-keyboard-lab-v3.webp", "center center"],
+  ["/editorial/photonics-calibration-v3.webp", "center center"],
+  ["/editorial/drone-wind-tunnel-v3.webp", "center center"],
 ] as const;
 
 export function SpiralGallery() {
