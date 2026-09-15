@@ -28,6 +28,7 @@ const products = [
     copy: "SW hesabını, ürün erişimlerini ve stüdyonun bütün dijital üretimlerini tek merkezde buluşturan ana platform.",
     state: "CANLI",
     color: "acid",
+    logo: "/brand/swcreate-logo.png",
     visual: "/editorial/automation-sculpture.webp",
     href: "https://swcreate.com",
   },
@@ -38,6 +39,7 @@ const products = [
     copy: "Yayın akışını, topluluk verilerini ve destek olaylarını tek merkezde görünür kılan canlı yayıncı alanı.",
     state: "CANLI",
     color: "cobalt",
+    logo: "/brand/play-streamers-ps-logo.svg",
     visual: "/editorial/creator-studio.webp",
     href: "https://pstreamers.com",
   },
@@ -48,6 +50,7 @@ const products = [
     copy: "Bağış platformlarını tek bir güvenli veri katmanında buluşturan ücretsiz tarayıcı bağlantısı.",
     state: "CANLI",
     color: "coral",
+    logo: "/brand/play-connect-pc-logo.svg",
     visual: "/editorial/product-interface.webp",
     href: "https://pstreamers.com",
   },
@@ -448,7 +451,7 @@ export function BrandSite() {
               <a className={`product-card product-card-${index + 1} ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
                 <div className="product-visual"><Image src={product.visual} alt="" fill /></div>
                 <div className="product-card-head"><span>{String(index + 1).padStart(2, "0")}</span><b>{product.group === "site" ? "PLATFORM" : "CONNECTOR"}</b><i>{product.state}</i></div>
-                <div className="product-main"><p>{product.kind}</p><h3>{product.name}</h3><span>{product.copy}</span></div>
+                <div className="product-main"><div className="product-brand-mark" aria-hidden="true"><Image src={product.logo} alt="" width={96} height={96} /></div><p>{product.kind}</p><h3>{product.name}</h3><span>{product.copy}</span></div>
                 <div className="product-side"><span className="product-command">OPEN PRODUCT</span><span className="arrow">↗</span></div>
               </a>
             ))}
