@@ -88,7 +88,7 @@ body {
 .signal-editorial-site .brand-mark img,
 .signal-editorial-site .footer-brand img,
 .member-brand img,
-.auth-entry-header .brand img { filter: brightness(0) invert(1); }
+.auth-entry-header .brand img { filter: none; }
 
 .signal-editorial-site .brand-word strong {
   color: #fff;
@@ -485,7 +485,7 @@ body {
 .signal-editorial-site .studio-logo-mark { display: grid; width: min(14vw, 150px); aspect-ratio: 1; place-items: center; border: 1px solid rgba(255,255,255,.24); border-radius: 34px; background: rgba(0,0,0,.12); animation: none; }
 .signal-editorial-site .studio-logo-mark::before,
 .signal-editorial-site .studio-logo-mark::after { display: none; }
-.signal-editorial-site .studio-logo-mark img { width: 70%; height: 70%; filter: brightness(0) invert(1); animation: none; }
+.signal-editorial-site .studio-logo-mark img { width: 70%; height: 70%; filter: none; animation: none; }
 .signal-editorial-site .studio-seal small { color: rgba(255,255,255,.8); font-size: 10px; font-weight: 750; letter-spacing: .1em; }
 
 .signal-editorial-site .studio-workbench .principle-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0; border: 0; }
@@ -824,6 +824,7 @@ body {
 .auth-version-rail span { color: #6d6964; }
 .native-provider-panel { display: grid; grid-template-columns: 36px 1fr; gap: 13px; padding: 16px; border: 1px solid var(--studio-border); border-radius: 16px; background: #151516; }
 .native-provider-panel img { width: 28px; filter: brightness(0) invert(1); }
+.native-provider-panel img[src*="swcreate-logo"] { filter: none; }
 .native-provider-panel strong { color: #fff; font-size: 11px; }
 .native-provider-panel p { margin: 5px 0 0; color: #85807b; font-size: 12px; }
 .native-provider-panel button { grid-column: 2; justify-self: start; border: 0; background: transparent; color: var(--studio-red-soft); font: inherit; font-size: 11px; cursor: pointer; }
@@ -845,7 +846,7 @@ body {
 .identity-2fa-cancel { margin-top: 14px; border: 0; background: transparent; color: #8f8a84; font: inherit; cursor: pointer; }
 .sw-account-picker-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; }
 .sw-account-picker > section > header { display: grid; grid-template-columns: 44px 1fr 36px; align-items: center; gap: 12px; }
-.sw-account-picker > section > header img { width: 36px; filter: brightness(0) invert(1); }
+.sw-account-picker > section > header img { width: 36px; filter: none; }
 .sw-account-picker > section > header span,
 .sw-account-picker > section > footer { color: var(--studio-red-soft); font-size: 9px; letter-spacing: .1em; }
 .sw-account-picker > section > header button { width: 36px; height: 36px; border: 0; border-radius: 10px; background: #202022; color: #fff; font-size: 20px; }
@@ -945,7 +946,7 @@ body {
 .member-orbit-mark { display: grid; place-items: center; }
 .member-orbit-mark > i { display: none; }
 .member-orbit-mark > span { display: grid; width: 126px; height: 126px; place-items: center; border: 1px solid rgba(255,255,255,.18); border-radius: 38px; background: rgba(0,0,0,.16); transform: rotate(8deg); }
-.member-orbit-mark img { width: 70px; filter: brightness(0) invert(1); }
+.member-orbit-mark img { width: 70px; filter: none; }
 
 .member-whats-new { display: grid; grid-template-columns: .9fr 1.1fr; min-height: 360px; overflow: hidden; }
 .member-whats-new > div:first-child { display: grid; align-content: center; padding: clamp(30px, 4vw, 54px); }
@@ -1137,7 +1138,7 @@ body {
 .legal-page { min-height: 100vh; padding: 40px 22px 110px; background: radial-gradient(circle at 80% 0, rgba(225,36,54,.13), transparent 32rem), #09090a; color: #fff; }
 .legal-page > .brand { display: flex; align-items: center; gap: 11px; width: min(900px, 100%); margin: 0 auto 64px; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
 .legal-page .brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid var(--studio-border); border-radius: 14px; background: #171718; }
-.legal-page .brand-mark img { width: 26px; filter: brightness(0) invert(1); }
+.legal-page .brand-mark img { width: 26px; filter: none; }
 .legal-content { width: min(900px, 100%); margin: auto; padding: clamp(30px, 6vw, 70px); border: 1px solid var(--studio-border); border-radius: 28px; background: #131314; }
 .legal-content .section-number { color: var(--studio-red-soft); font-size: 10px; letter-spacing: .1em; }
 .legal-content h1 { margin: 20px 0 34px; font-size: clamp(46px, 7vw, 78px); font-weight: 620; line-height: .94; letter-spacing: -.055em; }
