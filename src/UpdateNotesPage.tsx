@@ -30,8 +30,9 @@ export function UpdateNotesPage() {
   useEffect(() => {
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+    document.title = `${archive.ui.title} — SW Create`;
     localStorage.setItem("sw-language", locale);
-  }, [locale]);
+  }, [archive.ui.title, locale]);
   if (!account) return <main className="member-shell"><div className="member-loading">{archive.ui.loading}</div></main>;
   const history = archive.products[active];
   return <main className="member-shell sw-updates-page">
@@ -40,7 +41,7 @@ export function UpdateNotesPage() {
       <div className="sw-dashboard-heading"><p>{archive.ui.eyebrow}</p><h1>{archive.ui.title}</h1><span>{archive.ui.intro}</span></div>
       <nav className="sw-update-tabs" aria-label={archive.ui.title}>{productOrder.map((key) => { const item = archive.products[key]; return <button key={key} type="button" className={active === key ? "active" : ""} aria-pressed={active === key} onClick={() => setActive(key)}><b><img src={productLogos[key]} alt="" /></b><span><strong>{item.tabTitle}</strong><small>{item.current}</small></span><i aria-hidden="true">→</i></button>; })}</nav>
       <div className="sw-release-hero" aria-live="polite"><span>{archive.ui.currentVersion} · {history.name.toLocaleUpperCase(locale)}</span><strong>{history.current}</strong><p>{history.summary}</p></div>
-      <section className="sw-update-notes" aria-live="polite">{history.entries.map((note, index) => <article className={note.beta ? "beta-release" : "stable-release"} key={`${active}-${note.version}-${note.title}`}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{[note.beta ? archive.ui.beta : (note.version === "1.0" ? archive.ui.fullRelease : ""), note.version].filter(Boolean).join(" · ")}</span><h2>{note.title}</h2><ul>{note.items.map(item => <li key={item}>{item}</li>)}</ul></div><i aria-hidden="true" /></article>)}</section>
+      <section className="sw-update-notes without-numbers" aria-live="polite">{history.entries.map(note => <article className={note.beta ? "beta-release" : "stable-release"} key={`${active}-${note.version}-${note.title}`}><div><span>{[note.beta ? archive.ui.beta : (note.version === "1.0" ? archive.ui.fullRelease : ""), note.version].filter(Boolean).join(" · ")}</span><h2>{note.title}</h2><ul>{note.items.map(item => <li key={item}>{item}</li>)}</ul></div><i aria-hidden="true" /></article>)}</section>
     </section>
   </main>;
 }

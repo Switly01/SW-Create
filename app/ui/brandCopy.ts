@@ -123,3 +123,22 @@ BRAND_COPY.ja = {
   edition: { badge: "SW CREATE メンバーシップ", label: "ひとつのパスポート", title: ["ひとつのID。", "すべてのPRO特典。"], intro: "SW Createメンバーシップは、製品特典、先行アクセス、限定コミュニティ特典をひとつにまとめます。", oneId: "ひとつのID", allProducts: "すべての製品", plans: [{ label: "SW CREATE 無料", title: "無料センターアカウント", status: "無料", features: ["基本製品機能", "標準データ範囲", "コミュニティサポート"], action: "無料アカウントを作成" }, { label: "SW CREATE PRO", title: "スタジオ特典", status: "近日公開", features: ["更新への先行アクセス", "限定Discordロールと迅速なサポート", "新しい収益ツールへの先行アクセス"], action: "Proリストに参加" }, { label: "PRODUCT PRO", title: "全製品のProアクセス", status: "近日公開", features: ["すべてのSW製品でPro", "新製品への先行アクセス", "優先製品サポート"], action: "リストに参加" }] },
   closing: { title: ["次の製品の", "引力へ。"], action: "SWアカウントを作成" }, footer: { tagline: "独立したアイデアのための個性あるデジタル製品。", top: "ページ上部へ", products: "製品", management: "SW管理", edition: "SW Createメンバーシップ", trust: "信頼", privacy: "プライバシー", terms: "利用規約", privacyTitle: "プライバシー優先", privacyCopy: "IDとアクセスデータは、選択したSW製品を動かすためだけに使用されます。", copyright: "独立系デジタルスタジオ" },
 };
+
+// Editorial pass: keep key public-facing phrases natural in every language.
+BRAND_COPY.tr.system.activeUsers = "SW ürünlerinin aktif kullanıcıları";
+BRAND_COPY.tr.studio.principles[1].copy = "Verilerin, bağlantıların ve ürün izinlerin yalnızca senin yönetiminde.";
+BRAND_COPY.de.hero.lead = "Wir gestalten, entwickeln und skalieren charaktervolle Produkte für Kreative und digitale Gemeinschaften.";
+BRAND_COPY.de.nav.account = "SW-Konto";
+BRAND_COPY.de.hero.enter = "SW-Zentrale öffnen";
+BRAND_COPY.de.system.activeUsers = "Aktive Nutzer der SW-Produkte";
+BRAND_COPY.en.system.activeUsers = "Active SW product users";
+BRAND_COPY.es.system.activeUsers = "Usuarios activos de productos SW";
+BRAND_COPY.fr.system.activeUsers = "Utilisateurs actifs des produits SW";
+BRAND_COPY.ru.edition.oneId = "ЕДИНЫЙ ID";
+BRAND_COPY.ru.system.activeUsers = "Активные пользователи продуктов SW";
+BRAND_COPY.ru.footer.privacyTitle = "КОНФИДЕНЦИАЛЬНОСТЬ ПРЕЖДЕ ВСЕГО";
+BRAND_COPY.ar.system.activeUsers = "المستخدمون النشطون لمنتجات SW";
+BRAND_COPY.ar.field.items[4].label = "تركيب فني عام";
+BRAND_COPY.ar.products.connector = "أداة ربط";
+BRAND_COPY.ja.system.activeUsers = "SW製品のアクティブユーザー";
+BRAND_COPY.ja.studio.title[1] = "自分たちの思想でシステムをつくる。";

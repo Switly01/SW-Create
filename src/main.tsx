@@ -11,6 +11,7 @@ import { LegalPage } from "./LegalPage";
 import { DashboardPage } from "./DashboardPage";
 import { PlansPage } from "./PlansPage";
 import { UpdateNotesPage } from "./UpdateNotesPage";
+import { PortalLocalization } from "./PortalLocalization";
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
 const page = path.endsWith("/account")
@@ -31,4 +32,11 @@ const page = path.endsWith("/account")
       ? <LegalPage kind="terms" />
       : <BrandSite />;
 
-createRoot(document.getElementById("root")!).render(<StrictMode>{page}</StrictMode>);
+const hasNativeLocalization = path === "/" || path.endsWith("/updates");
+const showPortalLanguageControl = !path.endsWith("/home");
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    {hasNativeLocalization ? page : <PortalLocalization showControl={showPortalLanguageControl}>{page}</PortalLocalization>}
+  </StrictMode>,
+);

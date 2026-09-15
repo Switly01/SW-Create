@@ -6,7 +6,7 @@ export function LegalPage({ kind }: LegalPageProps) {
     <main className="legal-page">
       <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span>SW CREATE</a>
       <article className="legal-content">
-        <p className="section-number">YASAL / {privacy ? "01" : "02"}</p>
+        <p className="section-number">YASAL</p>
         <h1>{privacy ? <>GİZLİLİK<br />POLİTİKASI.</> : <>KULLANIM<br />KOŞULLARI.</>}</h1>
         <p>Son güncelleme: 14 Ağustos 2026</p>
         {privacy ? (

@@ -351,7 +351,7 @@ export function AccountPage() {
       <section className="account-art" aria-label="SW Create kimlik alanı">
         <div className="account-core-stage" aria-hidden="true"><SwDualCore className="account-dual-core" label="" /></div>
         <div className="account-quote"><span>SW IDENTITY / ACCESS LAYER</span><p>TEK KİMLİK.<br />BÜTÜN ÜRÜNLER.</p></div>
-        <ol className="account-trust-list"><li><b>01</b><span>Tek hesap</span></li><li><b>02</b><span>Güvenli veri akışı</span></li><li><b>03</b><span>Ürünler arası erişim</span></li></ol>
+        <ol className="account-trust-list"><li><span>Tek hesap</span></li><li><span>Güvenli veri akışı</span></li><li><span>Ürünler arası erişim</span></li></ol>
       </section>
       <AccountPanel />
       <aside className="auth-version-rail" aria-hidden="true">SW IDENTITY v{SW_IDENTITY_VERSION} <span>DATA FLOW PROTECTED</span></aside>

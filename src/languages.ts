@@ -11,6 +11,21 @@ export const SW_LANGUAGES = [
 
 export type SwLanguage = typeof SW_LANGUAGES[number][0];
 
+const SW_LOCALE_TAGS: Record<SwLanguage, string> = {
+  tr: "tr-TR",
+  en: "en-US",
+  de: "de-DE",
+  es: "es-ES",
+  fr: "fr-FR",
+  ru: "ru-RU",
+  ar: "ar",
+  ja: "ja-JP",
+};
+
+export function swLocaleTag(language: SwLanguage) {
+  return SW_LOCALE_TAGS[language];
+}
+
 export function savedSwLanguage(): SwLanguage {
   const saved = window.localStorage.getItem("sw-language");
   return SW_LANGUAGES.some(([code]) => code === saved) ? saved as SwLanguage : "tr";
