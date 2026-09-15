@@ -29,6 +29,7 @@ const products = [
     state: "CANLI",
     color: "acid",
     logo: "/brand/swcreate-logo.png",
+    logoClass: "sw-create-app-logo",
     visual: "/editorial/automation-sculpture.webp",
     href: "https://swcreate.com",
   },
@@ -451,7 +452,7 @@ export function BrandSite() {
               <a className={`product-card product-card-${index + 1} ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
                 <div className="product-visual"><Image src={product.visual} alt="" fill /></div>
                 <div className="product-card-head"><span>{String(index + 1).padStart(2, "0")}</span><b>{product.group === "site" ? "PLATFORM" : "CONNECTOR"}</b><i>{product.state}</i></div>
-                <div className="product-main"><div className="product-brand-mark" aria-hidden="true"><Image src={product.logo} alt="" width={96} height={96} /></div><p>{product.kind}</p><h3>{product.name}</h3><span>{product.copy}</span></div>
+                <div className="product-main"><div className="product-brand-mark" aria-hidden="true">{product.logoClass ? <span className={product.logoClass} /> : <Image src={product.logo} alt="" width={96} height={96} />}</div><p>{product.kind}</p><h3>{product.name}</h3><span>{product.copy}</span></div>
                 <div className="product-side"><span className="product-command">OPEN PRODUCT</span><span className="arrow">↗</span></div>
               </a>
             ))}
