@@ -81,24 +81,24 @@ function playConnectStoreForBrowser() {
 }
 
 const fieldNotes = [
-  { src: "/editorial/field-physical-prototype-v2.webp", alt: "Robotik üretim koluyla fiziksel prototip geliştiren tasarım ekibi", field: "INDUSTRIAL / R&D", label: "Fiziksel prototipleme" },
-  { src: "/editorial/field-performance-motion-v2.webp", alt: "Kırmızı kumaş ve hareket sensörleriyle sahne performansı", field: "PERFORMANCE / MOTION", label: "Hareket ve sahne" },
-  { src: "/editorial/field-generative-space-v2.webp", alt: "Soyut görüntülerle çevrili etkileşimli projeksiyon alanı", field: "GENERATIVE / SPACE", label: "Üretken deneyimler" },
-  { src: "/editorial/field-custom-hardware-v2.webp", alt: "Özel kontrol yüzeyi üreten donanım tasarımcısı", field: "HARDWARE / INTERFACE", label: "Özel donanım" },
-  { src: "/editorial/field-public-installation-v2.webp", alt: "Brütalist mimaride kırmızı ışık yerleştirmesi", field: "PUBLIC / INSTALLATION", label: "Kamusal enstalasyon" },
-  { src: "/editorial/field-film-direction-v2.webp", alt: "Sinematik ürün filmi çeken yaratıcı prodüksiyon ekibi", field: "FILM / DIRECTION", label: "Film prodüksiyonu" },
-  { src: "/editorial/field-object-identity-v2.webp", alt: "Taş, kumaş, krom ve kırmızı akrilikle hazırlanmış materyal çalışması", field: "OBJECT / IDENTITY", label: "Nesne ve kimlik" },
+  { src: "/editorial/prototype-lab.webp", alt: "Robotik üretim koluyla fiziksel prototip geliştiren tasarım ekibi", field: "INDUSTRIAL / R&D", label: "Fiziksel prototipleme" },
+  { src: "/editorial/performance-stage.webp", alt: "Kırmızı kumaş ve hareket sensörleriyle sahne performansı", field: "PERFORMANCE / MOTION", label: "Hareket ve sahne" },
+  { src: "/editorial/projection-field.webp", alt: "Soyut görüntülerle çevrili etkileşimli projeksiyon alanı", field: "GENERATIVE / SPACE", label: "Üretken deneyimler" },
+  { src: "/editorial/hardware-bench.webp", alt: "Özel kontrol yüzeyi üreten donanım tasarımcısı", field: "HARDWARE / INTERFACE", label: "Özel donanım" },
+  { src: "/editorial/urban-light-installation.webp", alt: "Brütalist mimaride kırmızı ışık yerleştirmesi", field: "PUBLIC / INSTALLATION", label: "Kamusal enstalasyon" },
+  { src: "/editorial/film-production-set.webp", alt: "Sinematik ürün filmi çeken yaratıcı prodüksiyon ekibi", field: "FILM / DIRECTION", label: "Film prodüksiyonu" },
+  { src: "/editorial/material-object-study.webp", alt: "Taş, kumaş, krom ve kırmızı akrilikle hazırlanmış materyal çalışması", field: "OBJECT / IDENTITY", label: "Nesne ve kimlik" },
 ] as const;
 
 const technologyFrames = [
-  { src: "/editorial/tech-computer-vision-v4.webp", alt: "Görsel algı teknolojilerini temsil eden robotik laboratuvar sahnesi", field: "COMPUTER VISION", label: "Görsel algı deneyleri", note: "Görüntüden kullanılabilir veriye" },
-  { src: "/editorial/tech-cleanroom-v4.webp", alt: "Hassas teknoloji araştırmalarını temsil eden temiz oda sahnesi", field: "TECH RESEARCH", label: "Teknoloji araştırması", note: "Yeni yöntemleri ürüne uyarlama" },
-  { src: "/editorial/tech-avionics-v4.webp", alt: "Bağlantılı donanım fikirlerini temsil eden teknoloji test sahnesi", field: "HARDWARE CONCEPTS", label: "Donanım kurguları", note: "Fikirden deneysel prototipe" },
-  { src: "/editorial/tech-compute-rack-v4.webp", alt: "Modern dijital ürün altyapılarını temsil eden bilgi işlem sistemi", field: "PRODUCT INFRASTRUCTURE", label: "Ürün altyapıları", note: "Hızlı · güvenilir · ölçeklenebilir" },
-  { src: "/editorial/tech-robot-fleet-v4.webp", alt: "Otomasyon akışlarını temsil eden mobil robotların bulunduğu endüstriyel sahne", field: "AUTOMATION", label: "Akıllı iş akışları", note: "Tekrarlanan işi sisteme devretme" },
-  { src: "/editorial/tech-haptic-interface-v4.webp", alt: "Şeffaf mekanik klavye ve fiziksel kontrol arayüzü prototipi", field: "INTERACTION", label: "Yeni arayüzler", note: "Dijital ve fiziksel etkileşim" },
-  { src: "/editorial/tech-photonics-v4.webp", alt: "Işık ve sensör tabanlı etkileşimleri temsil eden optik laboratuvar sahnesi", field: "LIGHT & SENSOR", label: "Etkileşimli ışık", note: "Mekânı tepki veren yüzeye dönüştürme" },
-  { src: "/editorial/tech-wind-tunnel-v4.webp", alt: "Hareket verisi ve gerçek zamanlı görselleştirmeyi temsil eden teknoloji sahnesi", field: "MOTION DATA", label: "Hareket verisi", note: "Veriyi canlı deneyime dönüştürme" },
+  { src: "/editorial/robot-vision-lab-v3.webp", alt: "Görsel algı teknolojilerini temsil eden robotik laboratuvar sahnesi", field: "COMPUTER VISION", label: "Görsel algı deneyleri", note: "Görüntüden kullanılabilir veriye" },
+  { src: "/editorial/semiconductor-cleanroom-v3.webp", alt: "Hassas teknoloji araştırmalarını temsil eden temiz oda sahnesi", field: "TECH RESEARCH", label: "Teknoloji araştırması", note: "Yeni yöntemleri ürüne uyarlama" },
+  { src: "/editorial/avionics-test-rig-v3.webp", alt: "Bağlantılı donanım fikirlerini temsil eden teknoloji test sahnesi", field: "HARDWARE CONCEPTS", label: "Donanım kurguları", note: "Fikirden deneysel prototipe" },
+  { src: "/editorial/liquid-compute-rack-v3.webp", alt: "Modern dijital ürün altyapılarını temsil eden bilgi işlem sistemi", field: "PRODUCT INFRASTRUCTURE", label: "Ürün altyapıları", note: "Hızlı · güvenilir · ölçeklenebilir" },
+  { src: "/editorial/autonomous-robot-fleet-v3.webp", alt: "Otomasyon akışlarını temsil eden mobil robotların bulunduğu endüstriyel sahne", field: "AUTOMATION", label: "Akıllı iş akışları", note: "Tekrarlanan işi sisteme devretme" },
+  { src: "/editorial/haptic-keyboard-lab-v3.webp", alt: "Şeffaf mekanik klavye ve fiziksel kontrol arayüzü prototipi", field: "INTERACTION", label: "Yeni arayüzler", note: "Dijital ve fiziksel etkileşim" },
+  { src: "/editorial/photonics-calibration-v3.webp", alt: "Işık ve sensör tabanlı etkileşimleri temsil eden optik laboratuvar sahnesi", field: "LIGHT & SENSOR", label: "Etkileşimli ışık", note: "Mekânı tepki veren yüzeye dönüştürme" },
+  { src: "/editorial/drone-wind-tunnel-v3.webp", alt: "Hareket verisi ve gerçek zamanlı görselleştirmeyi temsil eden teknoloji sahnesi", field: "MOTION DATA", label: "Hareket verisi", note: "Veriyi canlı deneyime dönüştürme" },
 ] as const;
 
 const languages = SW_LANGUAGES;
@@ -394,8 +394,8 @@ export function BrandSite() {
         </header>
         <div className="work-spectrum-grid">
           {[
-            ["product", "/editorial/cap-digital-product-v2.webp"], ["automation", "/editorial/cap-automation-v2.webp"], ["brand", "/editorial/cap-brand-system-v2.webp"],
-            ["space", "/editorial/cap-interactive-space-v2.webp"], ["film", "/editorial/cap-film-sound-v2.webp"], ["community", "/editorial/cap-community-workshop-v2.webp"],
+            ["product", "/editorial/product-interface.webp"], ["automation", "/editorial/automation-sculpture.webp"], ["brand", "/editorial/brand-system.webp"],
+            ["space", "/editorial/interactive-space.webp"], ["film", "/editorial/film-sound.webp"], ["community", "/editorial/creator-collective.webp"],
           ].map(([kind, src], index) => <article className={`work-tile work-tile-${kind}`} key={kind}><figure><Image src={src} alt={ui.work.items[index].alt} fill /></figure><div><span>{ui.work.items[index].category}</span><h3>{ui.work.items[index].title}</h3><p>{ui.work.items[index].copy}</p></div></article>)}
         </div>
       </section>
@@ -422,7 +422,7 @@ export function BrandSite() {
       </section>
 
       <section className="showreel-section" aria-label={ui.showreel.aria}>
-        <div className="showreel-image"><Image src="/editorial/showreel-light-architecture-v2.webp" alt={ui.showreel.alt} fill /></div>
+        <div className="showreel-image"><Image src="/editorial/urban-light-installation.webp" alt={ui.showreel.alt} fill /></div>
         <div className="showreel-noise" aria-hidden="true" />
         <p className="showreel-kicker">{ui.showreel.label}</p>
         <h2>{ui.showreel.title[0]}<br />{ui.showreel.title[1]}<br />{ui.showreel.title[2]}</h2>
@@ -463,11 +463,11 @@ export function BrandSite() {
           </div>
         </div>
         <div className="studio-cinema" aria-hidden="true">
-          <figure><Image src="/editorial/studio-camera-rail-v2.webp" alt="" fill /></figure>
-          <figure><Image src="/editorial/studio-hardware-bench-v2.webp" alt="" fill /></figure>
-          <figure><Image src="/editorial/studio-material-archive-v2.webp" alt="" fill /></figure>
-          <figure><Image src="/editorial/studio-print-workshop-v2.webp" alt="" fill /></figure>
-          <figure><Image src="/editorial/studio-urban-model-v2.webp" alt="" fill /></figure>
+          <figure><Image src="/editorial/virtual-production-stage-v2.webp" alt="" fill /></figure>
+          <figure><Image src="/editorial/hardware-bench.webp" alt="" fill /></figure>
+          <figure><Image src="/editorial/material-object-study.webp" alt="" fill /></figure>
+          <figure><Image src="/editorial/print-edition-workshop-v2.webp" alt="" fill /></figure>
+          <figure><Image src="/editorial/urban-model-workshop-v2.webp" alt="" fill /></figure>
         </div>
         <div className="studio-note"><span>{ui.studio.noteLabel}</span><p>{ui.studio.note}</p></div>
       </section>
