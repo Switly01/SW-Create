@@ -49,12 +49,13 @@ export function SpiralGallery() {
       const easedShift = linearShift * linearShift * linearShift * (linearShift * (linearShift * 6 - 15) + 10);
       const progress = completedSteps + easedShift;
 
-      const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
-      const radiusZ = mobile ? 145 : 220;
-      const visibleRadius = mobile ? 3.4 : 5.4;
+      const radiusX = mobile ? 34 : 76;
+      const radiusY = mobile ? 210 : Math.min(window.innerHeight * .37, 290);
+      const radiusZ = mobile ? 160 : 250;
+      const visibleRadius = mobile ? 3.2 : 4.4;
 
       items.forEach((item, index) => {
-        let distance = (index - progress + items.length / 2) % items.length;
+        let distance = (progress - index + items.length / 2) % items.length;
         if (distance < 0) distance += items.length;
         distance -= items.length / 2;
         const absoluteDistance = Math.abs(distance);
@@ -65,18 +66,18 @@ export function SpiralGallery() {
         }
 
         const position = distance / visibleRadius;
-        const angle = position * 1.18;
-        const x = Math.sin(angle) * radiusX;
+        const angle = position * 1.38;
+        const x = Math.sin(angle * .82) * radiusX;
+        const y = Math.sin(angle) * radiusY;
         const depth = Math.max(0, Math.cos(angle));
-        const depthEase = depth * depth * (3 - 2 * depth);
-        const y = -12 + depthEase * (mobile ? 48 : 64);
-        const scale = .52 + depthEase * .48;
+        const depthEase = Math.pow(depth, 2.25);
+        const scale = .46 + depthEase * .54;
         const edgeFade = Math.max(0, Math.min(1, visibleRadius + 1 - absoluteDistance));
         const smoothEdge = edgeFade * edgeFade * (3 - 2 * edgeFade);
-        const visibility = smoothEdge * (.28 + depthEase * .72);
-        const orbitZ = (depthEase - .5) * radiusZ * 1.65;
-        const yaw = position * (mobile ? -11 : -18);
-        const pitch = -5 + depthEase * 3;
+        const visibility = smoothEdge * (.2 + depthEase * .8);
+        const orbitZ = (depthEase - .5) * radiusZ * 1.8;
+        const pitch = position * (mobile ? -13 : -20);
+        const yaw = position * (mobile ? 4 : 7);
         item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
