@@ -372,12 +372,22 @@ async function currentUser(env, request) {
 async function accountPayload(env, user) {
   const now = Math.floor(Date.now() / 1000);
   const rows = await env.DB.prepare(`
-    SELECT p.name AS product, p.slug AS slug, e.tier AS tier
+    SELECT p.name AS product, p.slug AS slug,
+      COALESCE((
+        SELECT c.tier
+        FROM sw_subscriptions s
+        JOIN sw_plan_catalog c ON c.id = s.plan_id
+        WHERE s.user_id = e.user_id
+          AND s.product_id = e.product_id
+          AND s.status = 'active'
+          AND (s.current_period_end IS NULL OR s.current_period_end > ?)
+        LIMIT 1
+      ), e.tier) AS tier
     FROM sw_entitlements e
     JOIN sw_products p ON p.id = e.product_id
     WHERE e.user_id = ? AND (e.expires_at IS NULL OR e.expires_at > ?)
     ORDER BY p.name ASC
-  `).bind(user.id, now).all();
+  `).bind(now, user.id, now).all();
   const identities = await env.DB.prepare("SELECT provider FROM sw_oauth_identities WHERE user_id = ?")
     .bind(user.id).all();
   const productConnectionRows = await env.DB.prepare("SELECT product_id AS productId FROM sw_product_connections WHERE user_id = ?")
@@ -1118,6 +1128,76 @@ async function recordProductActivity(env, request) {
   ]);
   const headers = activityCorsHeaders(request);
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+}
+
+function normalizePlanRedemptionCode(value) {
+  const code = String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+  return /^sw-(?:[a-z0-9]{5}-){3}[a-z0-9]{5}$/.test(code) ? code : "";
+}
+
+async function redeemPlanCode(env, request, user) {
+  await rateLimit(env, request, "plan-code-redeem", 8, 15 * 60, user.id);
+  const body = await parseBody(request);
+  const code = normalizePlanRedemptionCode(body.code);
+  if (!code) return json(request, { error: "Geçerli bir SW plan kodu gir." }, 400);
+
+  const codeHash = await sha256(`sw-plan-code:v1:${code}`);
+  const record = await env.DB.prepare(`SELECT id, status, grant_plan_id AS grantPlanId
+    FROM sw_plan_redemption_codes WHERE code_hash = ? LIMIT 1`).bind(codeHash).first();
+  if (!record) return json(request, { error: "Bu SW plan kodu geçerli değil." }, 404);
+  if (record.status !== "active") return json(request, { error: "Bu SW plan kodu daha önce kullanılmış." }, 409);
+  if (record.grantPlanId !== "sw-create-product-pro") return json(request, { error: "Bu kodun plan tanımı desteklenmiyor." }, 409);
+
+  const now = Math.floor(Date.now() / 1000);
+  const redemptionId = crypto.randomUUID();
+  const results = await env.DB.batch([
+    env.DB.prepare(`UPDATE sw_plan_redemption_codes
+      SET status = 'redeemed', redemption_id = ?, redeemed_by_user_id = ?, redeemed_at = ?, updated_at = ?
+      WHERE code_hash = ? AND status = 'active' AND redemption_id IS NULL`)
+      .bind(redemptionId, user.id, now, now, codeHash),
+    env.DB.prepare(`INSERT INTO sw_entitlements
+      (id, user_id, product_id, tier, source, starts_at, expires_at, created_at, updated_at)
+      SELECT ?, ?, 'sw-create', 'product-pro', 'plan-code', ?, NULL, ?, ?
+      FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        tier = 'product-pro', source = 'plan-code', starts_at = excluded.starts_at,
+        expires_at = NULL, updated_at = excluded.updated_at`)
+      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
+    env.DB.prepare(`INSERT INTO sw_entitlements
+      (id, user_id, product_id, tier, source, starts_at, expires_at, created_at, updated_at)
+      SELECT ?, ?, 'play-streamers', 'product-pro', 'sw-create-product-pro-bundle', ?, NULL, ?, ?
+      FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        tier = 'product-pro', source = 'sw-create-product-pro-bundle', starts_at = excluded.starts_at,
+        expires_at = NULL, updated_at = excluded.updated_at`)
+      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
+    env.DB.prepare(`INSERT INTO sw_subscriptions
+      (id, user_id, product_id, plan_id, status, source, starts_at, current_period_end, cancelled_at, created_at, updated_at)
+      SELECT ?, ?, 'sw-create', 'sw-create-product-pro', 'active', 'plan-code', ?, NULL, NULL, ?, ?
+      FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        plan_id = 'sw-create-product-pro', status = 'active', source = 'plan-code',
+        starts_at = excluded.starts_at, current_period_end = NULL, cancelled_at = NULL,
+        updated_at = excluded.updated_at`)
+      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
+    env.DB.prepare(`INSERT INTO sw_subscriptions
+      (id, user_id, product_id, plan_id, status, source, starts_at, current_period_end, cancelled_at, created_at, updated_at)
+      SELECT ?, ?, 'play-streamers', 'play-streamers-product-pro', 'active', 'sw-create-product-pro-bundle', ?, NULL, NULL, ?, ?
+      FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        plan_id = 'play-streamers-product-pro', status = 'active', source = 'sw-create-product-pro-bundle',
+        starts_at = excluded.starts_at, current_period_end = NULL, cancelled_at = NULL,
+        updated_at = excluded.updated_at`)
+      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
+  ]);
+
+  if (Number(results[0]?.meta?.changes || 0) !== 1) return json(request, { error: "Bu SW plan kodu daha önce kullanılmış." }, 409);
+  await recordSecurityEvent(env, request, "plan_code.redeem", user.id);
+  return json(request, {
+    ok: true,
+    message: "SW Create ve Play Streamers Product Pro süresiz etkinleştirildi.",
+    account: await accountPayload(env, user),
+  });
 }
 
 async function recordInternalProductActivity(env, request) {
@@ -1977,6 +2057,7 @@ export default {
       const connectionDisconnectMatch = url.pathname.match(/^\/api\/account\/connections\/(google|kick|play-streamers)$/);
       if (request.method === "DELETE" && connectionDisconnectMatch) return user ? await disconnectAccountConnection(env, request, user, connectionDisconnectMatch[1]) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "GET" && url.pathname === "/api/plans") return user ? await planCatalog(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
+      if (request.method === "POST" && url.pathname === "/api/account/plan-code/redeem") return user ? await redeemPlanCode(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "GET" && url.pathname === "/api/account/avatar") return user ? await serveProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/avatar") return user ? await uploadProfileAvatar(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);
       if (request.method === "POST" && url.pathname === "/api/account/password") return user ? await updatePassword(env, request, user) : json(request, { error: "Oturum bulunamadı." }, 401);

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrandSite } from "../app/ui/BrandSite";
 import "../app/globals.css";
@@ -12,6 +12,43 @@ import { DashboardPage } from "./DashboardPage";
 import { PlansPage } from "./PlansPage";
 import { UpdateNotesPage } from "./UpdateNotesPage";
 import { PortalLocalization } from "./PortalLocalization";
+import { API_BASE } from "./api";
+
+function PublicEntry() {
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    const fallback = window.setTimeout(() => {
+      if (!active) return;
+      controller.abort();
+      setSessionChecked(true);
+    }, 5_000);
+    fetch(`${API_BASE}/api/account`, { credentials: "include", cache: "no-store", signal: controller.signal })
+      .then((response) => {
+        window.clearTimeout(fallback);
+        if (!active) return;
+        if (response.ok) {
+          window.location.replace("/home/");
+          return;
+        }
+        setSessionChecked(true);
+      })
+      .catch((error) => {
+        window.clearTimeout(fallback);
+        if (active && !(error instanceof DOMException && error.name === "AbortError")) setSessionChecked(true);
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(fallback);
+      controller.abort();
+    };
+  }, []);
+
+  if (!sessionChecked) return <main className="public-entry-gate" aria-live="polite"><img src="/brand/swcreate-logo.png" alt="" /><span>SW HESABI KONTROL EDİLİYOR</span><i /></main>;
+  return <BrandSite />;
+}
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
 const page = path.endsWith("/account")
@@ -27,10 +64,10 @@ const page = path.endsWith("/account")
   : path.endsWith("/updates")
     ? <UpdateNotesPage />
   : path.endsWith("/privacy")
-    ? <LegalPage kind="privacy" />
+      ? <LegalPage kind="privacy" />
     : path.endsWith("/terms")
       ? <LegalPage kind="terms" />
-      : <BrandSite />;
+      : <PublicEntry />;
 
 const hasNativeLocalization = path === "/" || path.endsWith("/updates");
 const showPortalLanguageControl = !path.endsWith("/home");

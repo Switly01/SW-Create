@@ -158,18 +158,6 @@ export function BrandSite() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_BASE}/api/account`, { credentials: "include", cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.ok) window.location.replace("/home/");
-      })
-      .catch((error) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("SW oturumu kontrol edilemedi.");
-      });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
     let statsTimer = 0;
     let pulseTimer = 0;
     const pulseActivity = async () => {

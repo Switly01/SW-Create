@@ -3220,6 +3220,100 @@ html.sw-layout-guard body { max-width: 100%; overflow-x: hidden; }
 .subscription-family .subscription-list article { min-height: 86px; padding-block: 14px; }
 .subscription-family > a { align-self: end; margin-top: 24px; color: #fff; font-size: 12px; font-weight: 720; }
 
+.public-entry-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  background: radial-gradient(circle at 50% 42%, rgba(225,36,54,.12), transparent 28%), #050506;
+  color: rgba(255,255,255,.66);
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.public-entry-gate img { width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 0 28px rgba(225,36,54,.22)); }
+.public-entry-gate i { width: 132px; height: 2px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.08); }
+.public-entry-gate i::after { content: ""; display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, transparent, #ff2e45, transparent); animation: public-entry-scan 1.15s ease-in-out infinite; }
+@keyframes public-entry-scan { from { transform: translateX(-120%); } to { transform: translateX(340%); } }
+
+.subscription-product-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 30px;
+}
+.subscription-product-tabs button {
+  display: grid;
+  grid-template-columns: 52px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  min-height: 84px;
+  padding: 14px 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: 18px;
+  background: #111112;
+  color: #8f8a84;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+.subscription-product-tabs button:hover { transform: translateY(-2px); border-color: rgba(255,102,116,.38); }
+.subscription-product-tabs button.active { border-color: rgba(255,102,116,.52); background: linear-gradient(145deg, rgba(225,36,54,.14), #121213 62%); color: #fff; }
+.subscription-product-tabs button > b { display: grid; width: 52px; height: 52px; place-items: center; border: 1px solid rgba(255,255,255,.09); border-radius: 15px; background: #080809; }
+.subscription-product-tabs img { width: 38px; height: 38px; object-fit: contain; }
+.subscription-product-tabs button > span { display: grid; gap: 5px; min-width: 0; }
+.subscription-product-tabs strong { font-size: 13px; }
+.subscription-product-tabs small { overflow: hidden; color: #77716c; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.subscription-product-tabs button > i { color: #615c58; font-style: normal; }
+.subscription-product-tabs button.active > i { color: var(--studio-red-soft); }
+
+.subscription-product-panel {
+  display: grid;
+  grid-template-columns: minmax(220px,.75fr) minmax(300px,1.25fr);
+  gap: 34px;
+  margin-top: 14px;
+  padding: clamp(24px,4vw,42px);
+  border: 1px solid rgba(225,36,54,.28);
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(94,10,18,.2), #111112 48%);
+}
+.subscription-product-panel.play-streamers { border-color: rgba(164,180,205,.24); background: linear-gradient(145deg, rgba(65,76,96,.24), #111112 48%); }
+.subscription-product-panel > header { display: grid; align-content: start; gap: 10px; }
+.subscription-product-panel > header > span { color: var(--studio-red-soft); font-size: 9px; font-weight: 780; letter-spacing: .12em; }
+.subscription-product-panel > header h2 { margin: 0; font-size: clamp(34px,4.4vw,58px); line-height: .96; letter-spacing: -.05em; }
+.subscription-product-panel > header p { margin: 0; color: #8f8a84; line-height: 1.6; }
+.subscription-product-panel .subscription-list { align-self: center; margin: 0; }
+.subscription-product-panel .subscription-list article { min-height: 88px; padding-block: 16px; }
+.subscription-product-panel > a { grid-column: 2; color: #fff; font-size: 12px; font-weight: 720; }
+
+.plan-code-redemption {
+  display: grid;
+  grid-template-columns: minmax(240px,1fr) minmax(260px,.9fr) auto;
+  align-items: end;
+  gap: 18px;
+  margin-top: 18px;
+  padding: clamp(24px,4vw,38px);
+  border: 1px solid rgba(255,102,116,.28);
+  border-radius: 28px;
+  background: linear-gradient(125deg, rgba(225,36,54,.12), rgba(17,17,18,.96) 42%);
+}
+.plan-code-redemption > div { display: grid; gap: 8px; }
+.plan-code-redemption > div > span { color: var(--studio-red-soft); font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.plan-code-redemption h2 { margin: 0; font-size: clamp(24px,3vw,40px); letter-spacing: -.04em; }
+.plan-code-redemption p { margin: 0; color: #8f8a84; font-size: 12px; line-height: 1.55; }
+.plan-code-redemption label { display: grid; gap: 8px; color: #8f8a84; font-size: 10px; font-weight: 700; }
+.plan-code-redemption input { width: 100%; min-height: 50px; padding: 0 14px; border: 1px solid rgba(255,255,255,.14); border-radius: 13px; outline: none; background: #09090a; color: #fff; font: 700 13px/1 monospace; letter-spacing: .04em; text-transform: lowercase; }
+.plan-code-redemption input:focus { border-color: rgba(255,102,116,.72); box-shadow: 0 0 0 3px rgba(225,36,54,.11); }
+.plan-code-redemption > button { min-height: 50px; padding: 0 20px; border: 1px solid #ff4055; border-radius: 13px; background: #e12436; color: #fff; font: inherit; font-size: 10px; font-weight: 800; line-height: 1; letter-spacing: .08em; cursor: pointer; }
+.plan-code-redemption > button:disabled { cursor: wait; opacity: .55; }
+.plan-code-redemption .plan-code-status { grid-column: 1 / -1; padding-top: 2px; color: #fff; }
+
 .sw-plan-products { gap: 28px; }
 .sw-plan-product { border-radius: 28px; }
 .sw-plan-product.sw-create { border-color: rgba(225,36,54,.28); background: linear-gradient(145deg, rgba(94,10,18,.18), #111112 42%); }
@@ -3250,6 +3344,10 @@ html.sw-layout-guard body { max-width: 100%; overflow-x: hidden; }
   .account-center-topbar .dashboard-account-link::after { content: "Ana sayfa"; font-size: 11px; }
   .subscription-family-grid { grid-template-columns: 1fr; }
   .subscription-family > header { min-height: 0; margin-bottom: 18px; }
+  .subscription-product-tabs { grid-template-columns: 1fr; }
+  .subscription-product-panel { grid-template-columns: 1fr; }
+  .subscription-product-panel > a { grid-column: 1; }
+  .plan-code-redemption { grid-template-columns: 1fr; align-items: stretch; }
   .sw-plan-product { padding: 24px; }
   .sw-plan-product > header { gap: 10px; margin-bottom: 24px; }
   .account-center-shell .member-layout > aside {

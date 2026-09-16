@@ -19,6 +19,16 @@ export function PlansPage() {
   }, [catalog]);
   if (!account || !catalog) return <main className="member-shell"><div className="member-loading">PLAN AĞI HAZIRLANIYOR…</div></main>;
   const subscriptionByProduct = new Map(catalog.subscriptions.map((item) => [item.productId, item]));
+  const entitlementByProduct = new Map(account.entitlements.map((item) => [item.slug, item]));
+  const effectiveEntitlements = productOrder.map((productId) => {
+    const entitlement = entitlementByProduct.get(productId);
+    const subscription = account.subscriptions.find((item) => item.productId === productId && item.status === "active");
+    return {
+      product: entitlement?.product || subscription?.product || (productId === "sw-create" ? "SW Create" : "Play Streamers"),
+      slug: productId,
+      tier: subscription?.tier || entitlement?.tier || "free",
+    };
+  });
   return <main className="member-shell sw-plans-page">
     <header className="member-topbar"><a href="/home/" className="member-brand"><img src="/brand/swcreate-logo.png" alt="" /><span>SW CREATE<small>PLANLAR</small></span></a><div className="member-top-status"><i /> SW IDENTITY v{SW_IDENTITY_VERSION}</div><a className="dashboard-account-link" href="/center/?view=subscriptions">Aboneliklerim</a></header>
     <section className="sw-plans-content"><div className="sw-dashboard-heading"><p>SW PLAN AĞI</p><h1>Ürünlerinle<br />birlikte büyü.</h1><span>SW Create ve Play Streamers planlarını ayrı ürün katmanları olarak gör; etkin planların SW Identity hesabınla eşleşir.</span></div>
@@ -32,7 +42,7 @@ export function PlansPage() {
           return <article key={plan.id} className={active ? "active" : ""}><span>{active ? "ŞU ANKİ PLAN" : plan.tier === "product-pro" ? "EN GENİŞ ÜRÜN PLANI" : "ÜRÜN PLANI"}</span><h3>{plan.name}</h3><p>{plan.description}</p><b>{active ? "ETKİN" : plan.availability === "coming_soon" ? "YAKINDA" : "HAZIR"}</b></article>;
         })}</div></section>;
       })}</div>
-      <section className="sw-plan-entitlements"><span>HESABINDAKİ ERİŞİMLER</span>{account.entitlements.length ? account.entitlements.map((item) => <article key={item.slug}><strong>{item.product}</strong><small>{item.slug}</small><b>{item.tier.toUpperCase()}</b></article>) : <p>Henüz ürüne özel bir erişim bulunmuyor.</p>}</section>
+      <section className="sw-plan-entitlements"><span>HESABINDAKİ ERİŞİMLER</span>{effectiveEntitlements.map((item) => <article key={item.slug}><strong>{item.product}</strong><small>{item.slug}</small><b>{item.tier.toUpperCase()}</b></article>)}</section>
     </section>
   </main>;
 }
