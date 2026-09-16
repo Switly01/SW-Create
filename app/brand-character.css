@@ -456,7 +456,7 @@
 .sw-character-site .slide-link:not(.product-card):hover,
 .sw-character-site .nav-links > a:not(.nav-account):hover { transform:translateX(7px); }
 .sw-character-site .footer-links a:hover { color:var(--sw-acid); transform:translateX(4px); }
-.sw-character-site .system-strip > div:nth-of-type(1) span::after { content:"SW Create \00b7 Play Streamers \00b7 Play Connect"; display:block; margin-top:6px; color:#77746c; font-size:8px; letter-spacing:.08em; line-height:1.35; }
+.sw-character-site .system-strip > div:nth-of-type(1) span::after { content:"SW Create \00b7 Play Streamers \00b7 Play Connect \00b7 Play Streamers App"; display:block; margin-top:6px; color:#77746c; font-size:8px; letter-spacing:.08em; line-height:1.35; }
 .sw-character-site .site-footer { padding-block:clamp(38px,5vw,74px); }
 .sw-character-site .footer-links strong { font-size:12px; }
 .sw-character-site .footer-links a,
