@@ -32,13 +32,42 @@ export function SpiralGallery() {
     const ring = gallery.querySelector<HTMLElement>("[data-gallery-ring]");
     if (!ring) return;
     const items = Array.from(ring.querySelectorAll<HTMLElement>("figure"));
+    const images = items
+      .map((item) => item.querySelector<HTMLImageElement>("img"))
+      .filter((image): image is HTMLImageElement => Boolean(image));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
-    const startedAt = performance.now();
+    let cancelled = false;
+    let preloadTimer = 0;
+    let startedAt = 0;
     const holdDuration = 520;
     const transitionDuration = 2080;
     const cycleDuration = holdDuration + transitionDuration;
     ring.style.transform = "none";
+
+    const waitForImage = (image: HTMLImageElement) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    };
+
+    const warmRemainingImages = () => {
+      const queue = images.slice(8, Math.max(8, images.length - 7));
+      let cursor = 0;
+      const warmBatch = () => {
+        if (cancelled || cursor >= queue.length) return;
+        queue.slice(cursor, cursor + 3).forEach((image) => {
+          image.loading = "eager";
+          image.fetchPriority = "low";
+          if (image.complete) image.decode?.().catch(() => undefined);
+        });
+        cursor += 3;
+        preloadTimer = window.setTimeout(warmBatch, 720);
+      };
+      warmBatch();
+    };
 
     const paint = (time: number) => {
       const mobile = window.innerWidth < 700;
@@ -86,7 +115,9 @@ export function SpiralGallery() {
         const depth = (z + radiusZ) / (radiusZ * 2);
         const depthEase = depth * depth * (3 - 2 * depth);
         const scale = .46 + depthEase * .4;
-        const visibility = .2 + depthEase * .8;
+        const edgeProgress = Math.max(0, Math.min(1, (renderRadius - absoluteDistance) / 1.35));
+        const edgeFade = edgeProgress * edgeProgress * (3 - 2 * edgeProgress);
+        const visibility = (.2 + depthEase * .8) * edgeFade;
         const orbitZ = (depth - .5) * radiusZ * 1.65;
         const yaw = Math.cos(angle) * (mobile ? -6 : -9);
         const pitch = Math.sin(angle) * (mobile ? -7 : -11);
@@ -99,8 +130,23 @@ export function SpiralGallery() {
       frame = window.requestAnimationFrame(paint);
     };
 
-    frame = window.requestAnimationFrame(paint);
+    const initialImages = images.filter((_, index) => index < 5 || index >= images.length - 4);
+    const start = async () => {
+      await Promise.race([
+        Promise.all(initialImages.map(waitForImage)),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 2600)),
+      ]);
+      if (cancelled) return;
+      startedAt = performance.now();
+      gallery.classList.add("is-ready");
+      warmRemainingImages();
+      frame = window.requestAnimationFrame(paint);
+    };
+    void start();
+
     return () => {
+      cancelled = true;
+      window.clearTimeout(preloadTimer);
       window.cancelAnimationFrame(frame);
     };
   }, []);
@@ -115,6 +161,7 @@ export function SpiralGallery() {
               alt=""
               draggable={false}
               loading={index < 8 || index >= galleryFrames.length - 7 ? "eager" : "lazy"}
+              fetchPriority={index < 5 || index >= galleryFrames.length - 4 ? "high" : "low"}
               decoding="async"
               style={{ objectPosition: position }}
             />

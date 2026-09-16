@@ -1636,9 +1636,12 @@ body {
   width: min(980px, 82vw);
   height: min(610px, 68vh);
   perspective: 1150px;
+  opacity: 0;
   transform: translate(-50%, -51%);
+  transition: opacity .9s cubic-bezier(.22, 1, .36, 1);
   pointer-events: none;
 }
+.cinematic-gallery.is-ready { opacity: 1; }
 
 .cinematic-gallery::before {
   content: "";
