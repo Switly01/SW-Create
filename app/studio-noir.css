@@ -2852,7 +2852,7 @@ body {
 .signal-editorial-site .closing-section {
   background-image:
     linear-gradient(90deg, rgba(4,4,5,.92), rgba(4,4,5,.25) 58%, rgba(4,4,5,.7)),
-    url("/editorial/signal-console.webp");
+    url("/editorial/hq2x-signal-console.webp");
 }
 
 @media (max-width: 760px) {
