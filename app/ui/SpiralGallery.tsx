@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 
 const galleryFrames = [
+  ["/editorial/product-sw-create-v3.png", "center center"],
+  ["/editorial/product-play-streamers-v3.png", "center center"],
+  ["/editorial/product-play-connect-v3.png", "center center"],
+  ["/editorial/product-play-streamers-app-v1.png", "center center"],
   ["/editorial/prototype-lab.webp", "center center"],
   ["/editorial/performance-stage.webp", "center center"],
   ["/editorial/projection-field.webp", "center center"],
@@ -82,7 +86,7 @@ export function SpiralGallery() {
         item.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${Math.cos(angle) * -12}deg) rotateZ(${tangent}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
-        item.style.filter = `blur(${(1 - depth) * .8}px) saturate(${.68 + depth * .48}) brightness(${.52 + depth * .48})`;
+        item.style.filter = `saturate(${.82 + depth * .3}) brightness(${.7 + depth * .3}) contrast(1.04)`;
         item.style.zIndex = String(Math.round(depth * 100));
       });
       frame = window.requestAnimationFrame(paint);

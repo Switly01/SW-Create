@@ -142,3 +142,18 @@ BRAND_COPY.ar.field.items[4].label = "تركيب فني عام";
 BRAND_COPY.ar.products.connector = "أداة ربط";
 BRAND_COPY.ja.system.activeUsers = "SW製品のアクティブユーザー";
 BRAND_COPY.ja.studio.title[1] = "自分たちの思想でシステムをつくる。";
+
+const appProductCopy: Record<SwLanguage, ProductItem> = {
+  tr: { kind: "Masaüstü yayıncı uygulaması", copy: "Yayın akışını, canlı olayları, bağlantıları ve gelir görünümünü Windows masaüstünde tek çalışma alanında birleştiren yerel uygulama.", state: "CANLI" },
+  en: { kind: "Desktop app for streamers", copy: "A native Windows workspace that brings stream activity, live events, connections and revenue overview together.", state: "LIVE" },
+  de: { kind: "Desktop-App für Streamer", copy: "Eine native Windows-Arbeitsfläche für Stream-Aktivität, Live-Ereignisse, Verbindungen und Umsatzübersicht.", state: "LIVE" },
+  es: { kind: "Aplicación de escritorio para streamers", copy: "Un espacio nativo para Windows que reúne actividad, eventos en directo, conexiones e ingresos.", state: "ACTIVO" },
+  fr: { kind: "Application de bureau pour streamers", copy: "Un espace Windows natif réunissant activité, événements en direct, connexions et revenus.", state: "ACTIF" },
+  ru: { kind: "Приложение для стримеров", copy: "Нативное рабочее пространство Windows для трансляций, событий, подключений и обзора доходов.", state: "РАБОТАЕТ" },
+  ar: { kind: "تطبيق مكتبي لمنشئي البث", copy: "مساحة عمل أصلية لنظام Windows تجمع نشاط البث والأحداث المباشرة والاتصالات وملخص الإيرادات.", state: "مباشر" },
+  ja: { kind: "配信者向けデスクトップアプリ", copy: "配信状況、ライブイベント、接続、収益概要をひとつにまとめるWindowsネイティブの作業空間。", state: "公開中" },
+};
+
+(Object.keys(appProductCopy) as SwLanguage[]).forEach((language) => {
+  BRAND_COPY[language].products.items.push(appProductCopy[language]);
+});

@@ -2858,3 +2858,116 @@ body {
 @media (max-width: 760px) {
   .signal-editorial-site .studio-cinema figure:nth-child(n+3) { display: none; }
 }
+
+/* September 2026 quality pass — clean fields, full-bleed motion and four real products. */
+.signal-editorial-site .hero-grid,
+.signal-editorial-site .edition-grid,
+.signal-editorial-site .field-atlas-section::before,
+.signal-editorial-site .products-sticky::before,
+.signal-editorial-site .closing-section::before {
+  display: none !important;
+}
+
+.signal-editorial-site .technology-section {
+  background: #d71f34;
+}
+
+.signal-editorial-site .kinetic-interlude {
+  width: 100vw;
+  margin-inline-start: calc(50% - 50vw);
+}
+.signal-editorial-site .kinetic-interlude > div,
+.signal-editorial-site .kinetic-interlude > div:nth-child(odd),
+.signal-editorial-site .kinetic-interlude > div:nth-child(even) {
+  transform: translateX(0);
+}
+@keyframes kinetic-left { from { transform: translateX(0); } to { transform: translateX(-25%); } }
+@keyframes kinetic-right { from { transform: translateX(-25%); } to { transform: translateX(0); } }
+
+.signal-editorial-site .cinematic-gallery-ring-primary figure {
+  top: calc(50% - 55px);
+  left: calc(50% - 88px);
+  width: 176px;
+  height: 110px;
+  border-color: rgba(255,255,255,.28);
+  box-shadow: 0 24px 58px rgba(0,0,0,.78);
+}
+.signal-editorial-site .cinematic-gallery-ring-primary figure img {
+  image-rendering: auto;
+  transform: translateZ(0);
+}
+
+.signal-editorial-site .product-gallery .product-card-4,
+.signal-editorial-site .product-gallery .product-card-4:hover {
+  background: #111113;
+  color: #fff;
+}
+.signal-editorial-site .product-card-4 .product-visual::after {
+  background: linear-gradient(90deg,#111113 0%,rgba(17,17,19,.9) 29%,rgba(17,17,19,.08) 82%);
+}
+.signal-editorial-site .product-card-4 :is(.product-main p,.product-main h3,.product-main > span,.product-card-head,.product-side) {
+  color: #fff;
+}
+.signal-editorial-site .product-visual img {
+  image-rendering: auto;
+  object-position: center;
+}
+
+.signal-editorial-site :is(.hero-copy h1,.field-atlas-heading h2,.work-spectrum-heading h2,.technology-heading h2,.showreel-section h2,.products-section .section-heading h2,.studio-statement h2,.edition-copy h2) {
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
+}
+.signal-editorial-site .hero-copy h1 { line-height: .88; }
+.signal-editorial-site .field-atlas-heading h2 { line-height: .86; }
+.signal-editorial-site .technology-heading h2 { line-height: .86; }
+.signal-editorial-site .showreel-section h2 { line-height: .88; }
+.signal-editorial-site .products-section .section-heading h2 { line-height: .9; }
+.signal-editorial-site .technology-frame figcaption { min-width: 0; }
+.signal-editorial-site .technology-frame figcaption strong,
+.signal-editorial-site .product-main h3,
+.signal-editorial-site .product-main > span {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 761px) {
+  .signal-editorial-site .products-section { height: 470svh; }
+  .signal-editorial-site .products-section .section-heading {
+    z-index: 3;
+    display: block;
+    opacity: var(--product-heading-opacity, 1);
+    transition: none;
+  }
+  .signal-editorial-site .products-section .section-heading .section-number { margin: 0 0 44px; }
+  .signal-editorial-site .products-section .section-heading h2 { font-size: clamp(48px, 4.9vw, 78px); line-height: .88; }
+  .signal-editorial-site .products-section .section-heading > p:last-child { margin-top: 28px; }
+  .signal-editorial-site .product-gallery .product-card:nth-child(4) {
+    width: min(66vw, 1000px);
+    height: min(69svh, 720px);
+    margin-bottom: 2vh;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 761px) {
+  .signal-editorial-site .cinematic-gallery-ring-primary figure {
+    top: calc(50% - 45px);
+    left: calc(50% - 72px);
+    width: 144px;
+    height: 90px;
+  }
+}
+
+@media (max-width: 760px) {
+  .signal-editorial-site .cinematic-gallery-ring-primary figure {
+    top: calc(50% - 39px);
+    left: calc(50% - 61px);
+    width: 122px;
+    height: 78px;
+  }
+  .signal-editorial-site .hero-copy h1 { line-height: .94; letter-spacing: -.055em; }
+  .signal-editorial-site .field-atlas-heading h2,
+  .signal-editorial-site .technology-heading h2,
+  .signal-editorial-site .showreel-section h2,
+  .signal-editorial-site .products-section .section-heading h2 { line-height: .92; letter-spacing: -.055em; }
+  .signal-editorial-site .product-gallery .product-card:nth-child(4) { transform: rotate(1deg) translateY(10px); }
+}

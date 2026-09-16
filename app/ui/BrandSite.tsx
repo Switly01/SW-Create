@@ -31,7 +31,7 @@ const products = [
     color: "acid",
     logo: "/brand/swcreate-logo.png",
     logoClass: "sw-create-app-logo",
-    visual: "/editorial/product-sw-create-v2.webp",
+    visual: "/editorial/product-sw-create-v3.png",
     href: "https://swcreate.com",
   },
   {
@@ -42,7 +42,7 @@ const products = [
     state: "CANLI",
     color: "cobalt",
     logo: "/brand/play-streamers-ps-logo.svg",
-    visual: "/editorial/product-play-streamers-v2.webp",
+    visual: "/editorial/product-play-streamers-v3.png",
     href: "https://pstreamers.com",
   },
   {
@@ -53,8 +53,19 @@ const products = [
     state: "CANLI",
     color: "coral",
     logo: "/brand/play-connect-pc-logo.svg",
-    visual: "/editorial/product-play-connect-v2.webp",
+    visual: "/editorial/product-play-connect-v3.png",
     href: "https://pstreamers.com",
+  },
+  {
+    group: "app",
+    name: "Play Streamers App",
+    kind: "Masaüstü yayıncı uygulaması",
+    copy: "Yayın akışını, canlı olayları, bağlantıları ve gelir görünümünü Windows masaüstünde tek çalışma alanında birleştiren yerel uygulama.",
+    state: "CANLI",
+    color: "signal",
+    logo: "/brand/play-streamers-ps-logo.svg",
+    visual: "/editorial/product-play-streamers-app-v1.png",
+    href: "https://apps.microsoft.com/detail/9NWZ0TF5K999",
   },
 ];
 
@@ -107,7 +118,7 @@ export function BrandSite() {
   const [languageOpen, setLanguageOpen] = useState(false);
   const [language, setLanguage] = useState<Language>(savedSwLanguage);
   const [playConnectStore] = useState(playConnectStoreForBrowser);
-  const [systemStats, setSystemStats] = useState({ activeUsers: "—", registeredAccounts: "—", activeProducts: "—" });
+  const [systemStats, setSystemStats] = useState({ activeUsers: "—", registeredAccounts: "—", activeProducts: "4" });
   const cursorOrbitRef = useRef<HTMLDivElement>(null);
   const languageControlRef = useRef<HTMLDivElement>(null);
   const ui = BRAND_COPY[language];
@@ -182,7 +193,7 @@ export function BrandSite() {
         setSystemStats({
           activeUsers: typeof data.activeUsers === "number" && Number.isFinite(data.activeUsers) ? String(data.activeUsers) : "—",
           registeredAccounts: typeof data.registeredAccounts === "number" && Number.isFinite(data.registeredAccounts) ? String(data.registeredAccounts) : "—",
-          activeProducts: typeof data.activeProducts === "number" && Number.isFinite(data.activeProducts) ? String(data.activeProducts) : "—",
+          activeProducts: "4",
         });
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("SW sistem verileri alınamadı.");
@@ -262,9 +273,11 @@ export function BrandSite() {
         const travel = Math.max(0, productTrack.scrollWidth - productStage.clientWidth + 64);
         productTrack.style.transform = `translate3d(${-travel * progress}px, 0, 0)`;
         productStage.style.setProperty("--product-progress", String(progress));
+        productStage.style.setProperty("--product-heading-opacity", String(Math.max(0, 1 - progress * 7)));
       } else {
         productTrack.style.transform = "";
         productStage.style.removeProperty("--product-progress");
+        productStage.style.removeProperty("--product-heading-opacity");
       }
 
       if (reel && reelImage && !reducedMotion.matches) {
@@ -323,7 +336,6 @@ export function BrandSite() {
           <div><b>{ui.kinetic.rows[0][0]}</b><b>{ui.kinetic.rows[0][2]}</b><b>{ui.kinetic.rows[1][1]}</b><b>{ui.kinetic.rows[2][2]}</b></div>
         </aside>
         <div className="hero-scene-meta" aria-hidden="true"><span>{ui.hero.interactive}</span><span>{ui.hero.discover}</span></div>
-        <div className="hero-grid" aria-hidden="true" />
         <aside className="hero-index" aria-hidden="true"><b>SW</b><span>{ui.brandSubtitle}</span></aside>
         <div className="hero-stage">
           <div className="hero-copy">
@@ -372,7 +384,6 @@ export function BrandSite() {
             </figure>
           ))}
         </div>
-        <aside className="field-atlas-note" aria-hidden="true"><span>{ui.field.aside[0]}</span><b>{ui.field.aside[1]}</b></aside>
       </section>
 
       <section id="capabilities" className="work-spectrum-section">
@@ -416,11 +427,10 @@ export function BrandSite() {
         <p className="showreel-kicker">{ui.showreel.label}</p>
         <h2>{ui.showreel.title[0]}<br />{ui.showreel.title[1]}<br />{ui.showreel.title[2]}</h2>
         <div className="showreel-caption"><span>{ui.showreel.discipline}</span><p>{ui.showreel.copy}</p></div>
-        <div className="showreel-stamp" aria-hidden="true">{ui.showreel.stamp.map((line) => <span key={line}>{line}<br /></span>)}</div>
       </section>
 
       <section className="kinetic-interlude" aria-label={ui.kinetic.aria}>
-        {ui.kinetic.rows.map((row, rowIndex) => <div key={rowIndex}>{row.map((term, index) => <span key={term}>{index > 0 && <i>·</i>}{index % 2 ? <em>{term}</em> : term}</span>)}</div>)}
+        {ui.kinetic.rows.map((row, rowIndex) => <div key={rowIndex}>{[...row, ...row].map((term, index) => <span key={`${term}-${index}`}>{index > 0 && <i>·</i>}{index % 2 ? <em>{term}</em> : term}</span>)}</div>)}
       </section>
 
       <section id="products" className="products-section">
@@ -435,7 +445,7 @@ export function BrandSite() {
             {products.map((product, index) => (
               <a className={`product-card product-card-${index + 1} ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
                 <div className="product-visual"><Image src={product.visual} alt="" fill /></div>
-                <div className="product-card-head"><b>{product.group === "site" ? ui.products.platform : ui.products.connector}</b><i>{ui.products.items[index].state}</i></div>
+                <div className="product-card-head"><b>{product.group === "site" ? ui.products.platform : product.group === "app" ? "APP" : ui.products.connector}</b><i>{ui.products.items[index].state}</i></div>
                 <div className="product-main"><div className="product-brand-mark" aria-hidden="true">{product.logoClass ? <span className={product.logoClass} /> : <Image src={product.logo} alt="" width={96} height={96} />}</div><p>{ui.products.items[index].kind}</p><h3>{product.name}</h3><span>{ui.products.items[index].copy}</span></div>
                 <div className="product-side"><span className="product-command">{ui.products.open}</span><span className="arrow">↗</span></div>
               </a>
@@ -463,7 +473,6 @@ export function BrandSite() {
       </section>
 
       <section id="edition" className="edition-section">
-        <div className="edition-grid" aria-hidden="true" />
         <div className="edition-intro"><div className="edition-badge">{ui.edition.badge}</div><div className="edition-copy"><p className="section-number">{ui.edition.label}</p><h2>{ui.edition.title[0]}<br /><span>{ui.edition.title[1]}</span></h2><p>{ui.edition.intro}</p></div><aside><strong>{ui.edition.oneId}</strong><span>{ui.edition.allProducts}</span></aside></div>
         <div className="plan-grid plan-grid-three">
           {ui.edition.plans.map((plan, index) => <article className={`plan-card ${index === 1 ? "pro" : index === 2 ? "edition" : ""}`} key={plan.label}><span>{plan.label}</span><h3>{plan.title}</h3><strong>{plan.status}</strong><ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul><Link className="identity-link" href={index === 0 ? "/account/?mode=register" : index === 1 ? "/account/?plan=pro" : "/account/?plan=edition"}>{plan.action} <b>↗</b></Link></article>)}
