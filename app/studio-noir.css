@@ -2885,10 +2885,10 @@ body {
 @keyframes kinetic-right { from { transform: translateX(-25%); } to { transform: translateX(0); } }
 
 .signal-editorial-site .cinematic-gallery-ring-primary figure {
-  top: calc(50% - 55px);
-  left: calc(50% - 88px);
-  width: 176px;
-  height: 110px;
+  top: calc(50% - 112px);
+  left: calc(50% - 180px);
+  width: 360px;
+  height: 225px;
   border-color: rgba(255,255,255,.28);
   box-shadow: 0 24px 58px rgba(0,0,0,.78);
 }
@@ -2950,19 +2950,19 @@ body {
 
 @media (max-width: 1100px) and (min-width: 761px) {
   .signal-editorial-site .cinematic-gallery-ring-primary figure {
-    top: calc(50% - 45px);
-    left: calc(50% - 72px);
-    width: 144px;
-    height: 90px;
+    top: calc(50% - 90px);
+    left: calc(50% - 144px);
+    width: 288px;
+    height: 180px;
   }
 }
 
 @media (max-width: 760px) {
   .signal-editorial-site .cinematic-gallery-ring-primary figure {
-    top: calc(50% - 39px);
-    left: calc(50% - 61px);
-    width: 122px;
-    height: 78px;
+    top: calc(50% - 78px);
+    left: calc(50% - 125px);
+    width: 250px;
+    height: 156px;
   }
   .signal-editorial-site .hero-copy h1 { line-height: .94; letter-spacing: -.055em; }
   .signal-editorial-site .field-atlas-heading h2,

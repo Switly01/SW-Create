@@ -65,13 +65,16 @@ export function SpiralGallery() {
         const z = Math.sin(angle) * radiusZ;
         const depth = (z + radiusZ) / (radiusZ * 2);
         const y = Math.sin(angle) * radiusY;
-        const scale = .7 + depth * .34;
+        // Keep every card on a generously sized render surface and only scale
+        // it down. Upscaling a small GPU layer during the orbit made otherwise
+        // high-resolution artwork look visibly pixelated.
+        const scale = .52 + depth * .28;
         const orbitVisibility = Math.max(0, Math.min(1, (depth - .8) / .2));
         const visibility = Math.pow(orbitVisibility, .68);
         let tangent = Math.atan2(radiusY * Math.cos(angle), -radiusX * Math.sin(angle)) * 180 / Math.PI;
         if (tangent > 90) tangent -= 180;
         if (tangent < -90) tangent += 180;
-        item.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${Math.cos(angle) * -12}deg) rotateZ(${tangent}deg) scale(${scale})`;
+        item.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${tangent}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
         item.style.filter = "none";
