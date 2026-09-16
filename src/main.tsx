@@ -13,6 +13,7 @@ import { PlansPage } from "./PlansPage";
 import { UpdateNotesPage } from "./UpdateNotesPage";
 import { PortalLocalization } from "./PortalLocalization";
 import { API_BASE } from "./api";
+import { NotFoundPage } from "./NotFoundPage";
 
 function PublicEntry() {
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -51,7 +52,10 @@ function PublicEntry() {
 }
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
-const page = path.endsWith("/account")
+const notFoundDocument = document.body.dataset.page === "not-found";
+const page = notFoundDocument
+  ? <NotFoundPage />
+  : path.endsWith("/account")
   ? <AccountPage />
   : path.endsWith("/home")
     ? <MemberHomePage />
@@ -69,7 +73,7 @@ const page = path.endsWith("/account")
       ? <LegalPage kind="terms" />
       : <PublicEntry />;
 
-const hasNativeLocalization = path === "/" || path.endsWith("/updates");
+const hasNativeLocalization = notFoundDocument || path === "/" || path.endsWith("/updates");
 const showPortalLanguageControl = !path.endsWith("/home");
 
 createRoot(document.getElementById("root")!).render(
