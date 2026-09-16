@@ -3105,3 +3105,147 @@ body {
   .member-home-shell .member-home-tools > button,
   .member-home-shell .member-dashboard-button { width: 35px; min-width: 35px; }
 }
+
+/* September 2026 product, language and account-system audit. */
+html.sw-layout-guard,
+html.sw-layout-guard body { max-width: 100%; overflow-x: hidden; }
+
+.signal-editorial-site .hero-broadcast,
+.signal-editorial-site[dir="rtl"] .hero-broadcast {
+  right: auto;
+  left: 50%;
+  width: 100vw;
+  min-width: 100vw;
+  margin: 0;
+  border-radius: 0;
+  transform: translateX(-50%);
+}
+.signal-editorial-site .hero-broadcast > div {
+  min-width: max-content;
+  padding-inline: 2.5rem;
+}
+
+.signal-editorial-site .language-control { position: relative; }
+.signal-editorial-site .language-button {
+  min-width: 64px;
+  min-height: 40px;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+}
+.signal-editorial-site .language-menu {
+  right: 0;
+  left: auto;
+  width: min(260px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 96px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.signal-editorial-site[dir="rtl"] .language-menu { right: auto; left: 0; }
+.signal-editorial-site .language-menu button { min-height: 44px; gap: 11px; line-height: 1.35; }
+
+.signal-editorial-site .product-main p,
+.signal-editorial-site .product-main h3,
+.signal-editorial-site .product-main > span,
+.signal-editorial-site .section-heading h2,
+.signal-editorial-site .section-heading > p:last-child,
+.member-shell h1,
+.member-shell h2,
+.member-shell h3,
+.member-shell p,
+.member-shell small,
+.member-shell span {
+  overflow-wrap: anywhere;
+}
+.signal-editorial-site .product-main h3 { margin-top: 10px; margin-bottom: 26px; line-height: .98; }
+.signal-editorial-site .product-main > span { line-height: 1.72; }
+.signal-editorial-site .product-card-head { gap: 18px; }
+.signal-editorial-site .product-visual img { object-position: center top !important; }
+
+.social-auth-icons {
+  grid-template-columns: repeat(3, minmax(64px, 92px));
+  justify-content: center;
+  width: 100%;
+  margin-inline: auto;
+}
+.social-auth-icons.register-providers { grid-template-columns: repeat(2, minmax(72px, 108px)); }
+.social-auth-icons .social-auth-button { width: 100%; min-height: 56px; }
+
+.secure-input { isolation: isolate; }
+.secure-input > .password-toggle {
+  z-index: 3;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  width: 40px !important;
+  height: 40px;
+  min-height: 40px !important;
+  place-items: center;
+  border-radius: 10px !important;
+  color: #aaa6a1;
+  cursor: pointer;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+.secure-input > .password-toggle:hover,
+.secure-input > .password-toggle:focus-visible,
+.secure-input > .password-toggle.visible { background: rgba(255,255,255,.08) !important; color: #fff; }
+.secure-input > .password-toggle:focus-visible { outline: 2px solid var(--studio-red-soft); outline-offset: 2px; }
+
+.sw-bot-intro { margin: -8px 0 18px; color: #aaa49e; font-size: 12px; line-height: 1.65; }
+.diagnostic-list article { padding-block: 14px; }
+.diagnostic-list article p { margin-top: 7px; line-height: 1.55; }
+.member-quick-panel > a { min-height: 82px; }
+.member-quick-panel > a i { min-width: 34px; text-align: center; }
+
+.account-center-topbar { grid-template-columns: 1fr auto 1fr; }
+.account-center-topbar .dashboard-account-link { justify-self: end; }
+.subscription-family-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.subscription-family {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  padding: clamp(24px, 3vw, 34px);
+  border: 1px solid var(--studio-border);
+  border-radius: 24px;
+  background: linear-gradient(145deg, #19191a, #111112);
+}
+.subscription-family.play-streamers { background: linear-gradient(145deg, rgba(46,51,62,.95), #111217); }
+.subscription-family > header { display: grid; gap: 10px; min-height: 166px; align-content: start; }
+.subscription-family > header > span { color: var(--studio-red-soft); font-size: 9px; font-weight: 780; letter-spacing: .12em; }
+.subscription-family > header h2 { margin: 0; font-size: clamp(30px, 3.2vw, 44px); line-height: 1; letter-spacing: -.045em; }
+.subscription-family > header p { margin: 0; color: #8f8a84; line-height: 1.6; }
+.subscription-family .subscription-list { margin: 0; padding: 0; }
+.subscription-family .subscription-list article { min-height: 86px; padding-block: 14px; }
+.subscription-family > a { align-self: end; margin-top: 24px; color: #fff; font-size: 12px; font-weight: 720; }
+
+.sw-plan-products { gap: 28px; }
+.sw-plan-product { border-radius: 28px; }
+.sw-plan-product.sw-create { border-color: rgba(225,36,54,.28); background: linear-gradient(145deg, rgba(94,10,18,.18), #111112 42%); }
+.sw-plan-product.play-streamers { border-color: rgba(164,180,205,.24); background: linear-gradient(145deg, rgba(65,76,96,.22), #111112 42%); }
+.sw-plan-product > header { row-gap: 12px; }
+.sw-plan-product > header h2 { line-height: 1; }
+.sw-plan-product > header p { margin: 0; line-height: 1.65; }
+.sw-plans-grid article { gap: 18px; }
+.sw-plans-grid h3 { line-height: 1.08; overflow-wrap: anywhere; }
+.sw-plans-grid p { line-height: 1.65; }
+
+.portal-language-dock { max-width: calc(100vw - 24px); }
+.portal-language-dock select { text-overflow: ellipsis; }
+
+@media (max-width: 700px) {
+  .signal-editorial-site .hero-broadcast,
+  .signal-editorial-site[dir="rtl"] .hero-broadcast { left: 50%; width: 100vw; min-width: 100vw; transform: translateX(-50%); }
+  .signal-editorial-site .language-menu { position: fixed; top: 68px; right: 12px; left: 12px; width: auto; max-height: calc(100vh - 86px); }
+  .signal-editorial-site[dir="rtl"] .language-menu { right: 12px; left: 12px; }
+  .social-auth-icons,
+  .social-auth-icons.register-providers { grid-template-columns: repeat(2, minmax(72px, 108px)); }
+  .account-center-topbar { display: grid; grid-template-columns: 1fr auto; }
+  .account-center-topbar .dashboard-account-link { grid-column: 2; font-size: 0; }
+  .account-center-topbar .dashboard-account-link::after { content: "Ana sayfa"; font-size: 11px; }
+  .subscription-family-grid { grid-template-columns: 1fr; }
+  .subscription-family > header { min-height: 0; margin-bottom: 18px; }
+  .sw-plan-product { padding: 24px; }
+  .sw-plan-product > header { gap: 10px; margin-bottom: 24px; }
+}

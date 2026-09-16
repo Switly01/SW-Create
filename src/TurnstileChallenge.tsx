@@ -54,6 +54,6 @@ export function TurnstileChallenge({ onToken, resetSignal }: { onToken: (token: 
     }
   }, [onToken, resetSignal]);
 
-  if (!TURNSTILE_SITE_KEY) return <div className="identity-passive-shield"><i /> SW bot ve hız koruması etkin</div>;
+  if (!TURNSTILE_SITE_KEY) return <div className="identity-passive-shield"><i /> SW Bot ve hız koruması etkin</div>;
   return <div className="identity-turnstile"><div ref={containerRef} /><span>SW IDENTITY doğrulaması</span></div>;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { savedSwLanguage, SW_LANGUAGES, type SwLanguage } from "./languages";
+import { PORTAL_TRANSLATION_OVERRIDES } from "./portalTranslationOverrides";
 
 type PortalCatalog = {
   language: SwLanguage;
@@ -85,14 +86,15 @@ export function PortalLocalization({ children, showControl = true }: { children:
         if (cancelled) return;
         const root = document.getElementById("root");
         if (!root) return;
-        document.title = localizedValue(document.title, catalog.translations).trim();
-        localizeTree(root, catalog.translations);
+        const translations = { ...catalog.translations, ...PORTAL_TRANSLATION_OVERRIDES[language] };
+        document.title = localizedValue(document.title, translations).trim();
+        localizeTree(root, translations);
         observer = new MutationObserver(records => {
           observer?.disconnect();
           records.forEach(record => {
-            if (record.type === "characterData") localizeTree(record.target, catalog.translations);
-            if (record.type === "attributes") localizeTree(record.target, catalog.translations);
-            record.addedNodes.forEach(node => localizeTree(node, catalog.translations));
+            if (record.type === "characterData") localizeTree(record.target, translations);
+            if (record.type === "attributes") localizeTree(record.target, translations);
+            record.addedNodes.forEach(node => localizeTree(node, translations));
           });
           observer?.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: [...TRANSLATED_ATTRIBUTES] });
         });

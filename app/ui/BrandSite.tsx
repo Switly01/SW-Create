@@ -31,7 +31,7 @@ const products = [
     color: "acid",
     logo: "/brand/swcreate-logo.png",
     logoClass: "sw-create-app-logo",
-    visual: "/editorial/product-sw-create-original.png",
+    visualKey: "sw-create",
     href: "https://swcreate.com",
   },
   {
@@ -42,7 +42,7 @@ const products = [
     state: "CANLI",
     color: "cobalt",
     logo: "/brand/play-streamers-ps-logo.svg",
-    visual: "/editorial/product-play-streamers-original.png",
+    visualKey: "play-streamers",
     href: "https://pstreamers.com",
   },
   {
@@ -53,7 +53,7 @@ const products = [
     state: "CANLI",
     color: "coral",
     logo: "/brand/play-connect-pc-logo.svg",
-    visual: "/editorial/product-play-connect-original-2x.png",
+    visualKey: "play-connect",
     href: "https://pstreamers.com",
   },
   {
@@ -64,7 +64,7 @@ const products = [
     state: "CANLI",
     color: "signal",
     logo: "/brand/play-streamers-ps-logo.svg",
-    visual: "/editorial/product-play-streamers-app-original.png",
+    visualKey: "play-streamers-app",
     href: "https://apps.microsoft.com/detail/9NWZ0TF5K999",
   },
 ];
@@ -444,7 +444,7 @@ export function BrandSite() {
           <div className="product-gallery">
             {products.map((product, index) => (
               <a className={`product-card product-card-${index + 1} ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
-                <div className="product-visual"><Image src={product.visual} alt="" fill /></div>
+                <div className="product-visual"><Image src={`/editorial/localized/${product.visualKey}-${language}.png`} alt="" fill /></div>
                 <div className="product-card-head"><b>{product.group === "site" ? ui.products.platform : product.group === "app" ? "APP" : ui.products.connector}</b><i>{ui.products.items[index].state}</i></div>
                 <div className="product-main"><div className="product-brand-mark" aria-hidden="true">{product.logoClass ? <span className={product.logoClass} /> : <Image src={product.logo} alt="" width={96} height={96} />}</div><p>{ui.products.items[index].kind}</p><h3>{product.name}</h3><span>{ui.products.items[index].copy}</span></div>
                 <div className="product-side"><span className="product-command">{ui.products.open}</span><span className="arrow">↗</span></div>

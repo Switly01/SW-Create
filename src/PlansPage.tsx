@@ -27,7 +27,7 @@ export function PlansPage() {
         const plans = groupedPlans.get(productId) || [];
         const current = subscriptionByProduct.get(productId);
         if (!plans.length) return null;
-        return <section key={productId} className="sw-plan-product"><header><span>SW ÜRÜN PLANI</span><h2>{plans[0].product}</h2><p>{productId === "sw-create" ? "Kimlik, üretim ve SW ürün ağı için merkezi planlar." : "Yayıncı paneli ve yayın üretim araçları için ürün planları."}</p></header><div className="sw-plans-grid">{plans.map((plan) => {
+        return <section key={productId} className={`sw-plan-product ${productId}`}><header><span>{productId === "sw-create" ? "SW CREATE ABONELİKLERİ" : "PLAY STREAMERS ABONELİKLERİ"}</span><h2>{plans[0].product}</h2><p>{productId === "sw-create" ? "Kimlik, üretim ve SW ürün ağı için merkezi planlar." : "Yayıncı paneli, masaüstü uygulaması ve yayın üretim araçları için ürün planları."}</p></header><div className="sw-plans-grid">{plans.map((plan) => {
           const active = current?.planId === plan.id && current.status === "active";
           return <article key={plan.id} className={active ? "active" : ""}><span>{active ? "ŞU ANKİ PLAN" : plan.tier === "product-pro" ? "EN GENİŞ ÜRÜN PLANI" : "ÜRÜN PLANI"}</span><h3>{plan.name}</h3><p>{plan.description}</p><b>{active ? "ETKİN" : plan.availability === "coming_soon" ? "YAKINDA" : "HAZIR"}</b></article>;
         })}</div></section>;

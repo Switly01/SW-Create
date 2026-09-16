@@ -297,7 +297,7 @@ function AccountPanel() {
 
           <div className="auth-provider-divider"><span>YA DA SAĞLAYICIYLA DEVAM ET</span></div>
 
-          <div className="social-auth social-auth-icons" aria-label="Hesap sağlayıcısı">
+          <div className={`social-auth social-auth-icons ${mode === "register" ? "register-providers" : "login-providers"}`} aria-label="Hesap sağlayıcısı">
             {mode === "login" && <button type="button" className="social-auth-button sw" title="SW Identity ile devam et" aria-label="SW Identity ile devam et" aria-haspopup="dialog" aria-expanded={nativeInfoOpen} onClick={() => {
               setNativeInfoOpen((open) => !open);
             }}><img src="/brand/swcreate-logo.png" alt="" /></button>}
