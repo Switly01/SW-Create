@@ -95,7 +95,10 @@ export function SpiralGallery() {
           ? Math.min(window.innerWidth * .43, 175)
           : Math.min(window.innerWidth * .38, 370);
       const radiusZ = mobile ? 150 : largeDesktop ? 320 : 235;
-      const renderRadius = orbitSlots / 2;
+      // Keep half a slot of overlap at the rear seam. The outgoing and
+      // incoming frames occupy the same point there and crossfade, so the
+      // orbit never exposes an empty gap between photographs.
+      const renderRadius = orbitSlots / 2 + .5;
 
       items.forEach((item, index) => {
         let distance = (progress - index + items.length / 2) % items.length;
@@ -115,8 +118,8 @@ export function SpiralGallery() {
         const depth = (z + radiusZ) / (radiusZ * 2);
         const depthEase = depth * depth * (3 - 2 * depth);
         const scale = .46 + depthEase * .4;
-        const edgeProgress = Math.max(0, Math.min(1, (renderRadius - absoluteDistance) / 1.35));
-        const edgeFade = edgeProgress * edgeProgress * (3 - 2 * edgeProgress);
+        const edgeProgress = Math.max(0, Math.min(1, renderRadius - absoluteDistance));
+        const edgeFade = Math.sin(edgeProgress * Math.PI * .5);
         const visibility = (.2 + depthEase * .8) * edgeFade;
         const orbitZ = (depth - .5) * radiusZ * 1.65;
         const yaw = Math.cos(angle) * (mobile ? -6 : -9);
