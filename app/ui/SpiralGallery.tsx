@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 
 const galleryFrames = [
-  ["/editorial/product-sw-create-v3.png", "center center"],
-  ["/editorial/product-play-streamers-v3.png", "center center"],
-  ["/editorial/product-play-connect-v3.png", "center center"],
-  ["/editorial/product-play-streamers-app-v1.png", "center center"],
+  ["/editorial/product-sw-create-original.png", "center center"],
+  ["/editorial/product-play-streamers-original.png", "center center"],
+  ["/editorial/product-play-connect-original.png", "center center"],
+  ["/editorial/product-play-streamers-app-original.png", "center center"],
   ["/editorial/prototype-lab.webp", "center center"],
   ["/editorial/performance-stage.webp", "center center"],
   ["/editorial/projection-field.webp", "center center"],

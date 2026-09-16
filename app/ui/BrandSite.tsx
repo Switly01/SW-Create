@@ -31,7 +31,7 @@ const products = [
     color: "acid",
     logo: "/brand/swcreate-logo.png",
     logoClass: "sw-create-app-logo",
-    visual: "/editorial/product-sw-create-v3.png",
+    visual: "/editorial/product-sw-create-original.png",
     href: "https://swcreate.com",
   },
   {
@@ -42,7 +42,7 @@ const products = [
     state: "CANLI",
     color: "cobalt",
     logo: "/brand/play-streamers-ps-logo.svg",
-    visual: "/editorial/product-play-streamers-v3.png",
+    visual: "/editorial/product-play-streamers-original.png",
     href: "https://pstreamers.com",
   },
   {
@@ -53,7 +53,7 @@ const products = [
     state: "CANLI",
     color: "coral",
     logo: "/brand/play-connect-pc-logo.svg",
-    visual: "/editorial/product-play-connect-v3.png",
+    visual: "/editorial/product-play-connect-original.png",
     href: "https://pstreamers.com",
   },
   {
@@ -64,7 +64,7 @@ const products = [
     state: "CANLI",
     color: "signal",
     logo: "/brand/play-streamers-ps-logo.svg",
-    visual: "/editorial/product-play-streamers-app-v1.png",
+    visual: "/editorial/product-play-streamers-app-original.png",
     href: "https://apps.microsoft.com/detail/9NWZ0TF5K999",
   },
 ];
