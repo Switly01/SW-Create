@@ -2551,9 +2551,9 @@ body {
   z-index: 0;
   top: 50%;
   left: 50%;
-  width: min(68vmin, 620px);
-  height: min(68vmin, 620px);
-  border: 1px solid rgba(225,36,54,.42);
+  width: min(64vmin, 540px);
+  height: min(64vmin, 540px);
+  border: 1px solid rgba(225,36,54,.28);
   border-radius: 50%;
   box-shadow: none;
   clip-path: none;
@@ -2784,7 +2784,7 @@ body {
   .signal-editorial-site .showreel-section { margin-top: -32px; }
   .signal-editorial-site .closing-section { background-position: 62% center; }
   .signal-editorial-site .cinematic-gallery { top: 48%; width: 112vw; height: 570px; }
-  .signal-editorial-site .cinematic-gallery::after { width: min(88vw, 390px); height: min(88vw, 390px); }
+  .signal-editorial-site .cinematic-gallery::after { width: min(84vw, 330px); height: min(84vw, 330px); }
   .signal-editorial-site .cinematic-gallery-ring-primary figure { top: calc(50% - 35px); left: calc(50% - 54px); width: 108px; height: 70px; }
   .signal-editorial-site .cinematic-gallery-count { top: 7%; bottom: auto; left: -4px; width: 82px; }
   .signal-editorial-site .cinematic-gallery-count strong { font-size: 31px; }

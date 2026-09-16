@@ -35,8 +35,8 @@ export function SpiralGallery() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     const startedAt = performance.now();
-    const holdDuration = 900;
-    const transitionDuration = 1700;
+    const holdDuration = 520;
+    const transitionDuration = 2080;
     const cycleDuration = holdDuration + transitionDuration;
     ring.style.transform = "none";
 
@@ -49,15 +49,15 @@ export function SpiralGallery() {
       const easedShift = linearShift * linearShift * linearShift * (linearShift * (linearShift * 6 - 15) + 10);
       const progress = completedSteps + easedShift;
 
-      // Keep the cards horizontal while their centres trace one complete
-      // circle around the hero. Only a small virtual ring is rendered at a
-      // time, so the full 100-frame collection never crowds the orbit.
-      const orbitSlots = mobile ? 7 : 9;
+      // A restrained vertical wheel: the next horizontal frame enters from
+      // above, rounds the near side of the orbit, then exits below. The rear
+      // half stays visually quiet so the hero never becomes a wall of images.
+      const orbitSlots = mobile ? 10 : 12;
       const angleStep = (Math.PI * 2) / orbitSlots;
       const orbitRadius = mobile
-        ? Math.min(window.innerWidth * .38, 156)
-        : Math.min(window.innerWidth * .26, window.innerHeight * .31, 250);
-      const radiusZ = mobile ? 135 : 210;
+        ? Math.min(window.innerWidth * .32, 145)
+        : Math.min(window.innerWidth * .2, window.innerHeight * .3, 230);
+      const radiusZ = mobile ? 150 : 230;
       const renderRadius = orbitSlots / 2;
 
       items.forEach((item, index) => {
@@ -71,17 +71,18 @@ export function SpiralGallery() {
           return;
         }
 
-        const angle = -Math.PI * .5 + distance * angleStep;
-        const x = Math.cos(angle) * orbitRadius;
+        const angle = distance * angleStep;
+        const x = -Math.cos(angle) * orbitRadius;
         const y = Math.sin(angle) * orbitRadius;
         const z = Math.cos(angle) * radiusZ;
         const depth = (z + radiusZ) / (radiusZ * 2);
         const depthEase = depth * depth * (3 - 2 * depth);
-        const scale = .48 + depthEase * .34;
-        const visibility = .28 + depthEase * .72;
+        const scale = .4 + Math.pow(depth, 2.4) * .46;
+        const fadeProgress = Math.max(0, Math.min(1, (depth - .5) / .4));
+        const visibility = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
         const orbitZ = (depth - .5) * radiusZ * 1.65;
-        const yaw = Math.sin(angle) * (mobile ? -6 : -10);
-        const pitch = Math.cos(angle) * (mobile ? -5 : -8);
+        const yaw = Math.sin(angle) * (mobile ? 6 : 9);
+        const pitch = Math.sin(angle) * (mobile ? -9 : -13);
         item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
