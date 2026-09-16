@@ -1120,6 +1120,27 @@ async function recordProductActivity(env, request) {
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
 }
 
+async function recordInternalProductActivity(env, request) {
+  const authorization = String(request.headers.get("authorization") || "");
+  if (!env.SW_PRODUCT_SSO_SECRET || !safeEqual(authorization, `Bearer ${env.SW_PRODUCT_SSO_SECRET}`)) {
+    return json(request, { error: "Ürün etkinliği doğrulanamadı." }, 401);
+  }
+  const body = await parseBody(request);
+  const product = String(body.product || "").trim().toLowerCase();
+  const visitor = String(body.visitor || "").trim();
+  if (product !== "play-streamers-app" || visitor.length < 8 || visitor.length > 160) {
+    return json(request, { error: "Ürün etkinliği geçerli değil." }, 400);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const visitorHash = await sha256(`${product}:${visitor}:${env.AUTH_PEPPER}`);
+  await env.DB.prepare(`
+    INSERT INTO sw_product_activity (visitor_hash, product_id, first_seen_at, last_seen_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(visitor_hash, product_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+  `).bind(visitorHash, product, now, now).run();
+  return json(request, { ok: true });
+}
+
 async function register(env, request) {
   await rateLimit(env, request, "register", 6, 60 * 60);
   const body = await parseBody(request);
@@ -1921,6 +1942,7 @@ export default {
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/google/callback") return await finishOAuth(env, request, "google");
       if (request.method === "GET" && url.pathname === "/api/auth/oauth/kick/callback") return await finishOAuth(env, request, "kick");
       if (request.method === "POST" && url.pathname === "/api/internal/support/reply") return await replySupportInternally(env, request);
+      if (request.method === "POST" && url.pathname === "/api/internal/activity/pulse") return await recordInternalProductActivity(env, request);
       if (request.method === "POST" && url.pathname === "/api/internal/auth/product/exchange") return await exchangeProductLogin(env, request);
       if (request.method === "GET" && url.pathname === "/api/internal/account") return await handleInternalProductAccount(env, request, "read");
       if (request.method === "GET" && url.pathname === "/api/internal/account/avatar") return await handleInternalProductAccount(env, request, "avatar");

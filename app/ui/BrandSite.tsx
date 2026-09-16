@@ -473,7 +473,7 @@ export function BrandSite() {
       </section>
 
       <section id="edition" className="edition-section">
-        <div className="edition-intro"><div className="edition-badge">{ui.edition.badge}</div><div className="edition-copy"><p className="section-number">{ui.edition.label}</p><h2>{ui.edition.title[0]}<br /><span>{ui.edition.title[1]}</span></h2><p>{ui.edition.intro}</p></div><aside><strong>{ui.edition.oneId}</strong><span>{ui.edition.allProducts}</span></aside></div>
+        <div className="edition-intro"><div className="edition-badge">{ui.edition.badge}</div><div className="edition-copy"><h2>{ui.edition.title[0]}<br /><span>{ui.edition.title[1]}</span></h2><p>{ui.edition.intro}</p></div></div>
         <div className="plan-grid plan-grid-three">
           {ui.edition.plans.map((plan, index) => <article className={`plan-card ${index === 1 ? "pro" : index === 2 ? "edition" : ""}`} key={plan.label}><span>{plan.label}</span><h3>{plan.title}</h3><strong>{plan.status}</strong><ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul><Link className="identity-link" href={index === 0 ? "/account/?mode=register" : index === 1 ? "/account/?plan=pro" : "/account/?plan=edition"}>{plan.action} <b>↗</b></Link></article>)}
         </div>

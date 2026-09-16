@@ -2985,3 +2985,123 @@ body {
   .signal-editorial-site .products-section .section-heading h2 { line-height: .92; letter-spacing: -.055em; }
   .signal-editorial-site .product-gallery .product-card:nth-child(4) { transform: rotate(1deg) translateY(10px); }
 }
+
+/* September 2026 interface audit — precise framing, spacing and member navigation. */
+.signal-editorial-site .topbar .brand-mark {
+  display: grid;
+  width: 72px;
+  height: 44px;
+  padding: 5px 16px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(255,255,255,.09), rgba(225,36,54,.08));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.24), 0 9px 28px rgba(0,0,0,.22);
+}
+.signal-editorial-site .topbar .brand-mark img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.signal-editorial-site .hero-broadcast,
+.signal-editorial-site[dir="rtl"] .hero-broadcast {
+  right: 0;
+  left: 0;
+  width: 100%;
+  transform: none;
+}
+
+.signal-editorial-site .edition-intro {
+  grid-template-columns: minmax(0, 1fr);
+}
+.signal-editorial-site .edition-copy > p:last-child { margin-top: 28px; line-height: 1.65; }
+
+.signal-editorial-site .product-main p { margin: 0 0 18px; line-height: 1.45; }
+.signal-editorial-site .product-main h3 { margin-bottom: 24px; line-height: .88; }
+.signal-editorial-site .product-main > span { display: block; line-height: 1.62; }
+.signal-editorial-site .section-heading > p:last-child,
+.signal-editorial-site .work-spectrum-heading > span,
+.signal-editorial-site .technology-heading > span { line-height: 1.65; }
+
+.member-home-shell .member-command-bar {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding-inline: max(22px, calc((100% - 1180px) / 2));
+}
+.member-home-shell .member-brand { flex: 0 1 auto; min-width: 0; }
+.member-home-shell .member-home-tools {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.member-home-shell .member-home-content { padding-top: 64px; }
+.member-home-shell .member-welcome { margin-bottom: 58px; }
+.member-home-shell .member-welcome > p { margin-bottom: 20px; }
+.member-home-shell .member-dashboard { gap: 20px; }
+.member-home-shell .member-briefing,
+.member-home-shell .member-whats-new { border-radius: 28px; }
+.member-home-shell .member-briefing h2 { margin: 18px 0 18px; line-height: .98; }
+.member-home-shell .member-briefing p,
+.member-home-shell .member-whats-new p { line-height: 1.65; }
+.member-home-shell .member-release-list article { gap: 18px; padding-block: 26px; }
+.member-home-shell .member-release-list small { margin-top: 8px; line-height: 1.5; }
+.member-home-shell .account-summary-grid { gap: 16px; }
+.member-home-shell .member-command-surface { top: 70px; right: max(22px, calc((100% - 1180px) / 2)); }
+
+.sw-update-tabs .product-logo {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 11px;
+  background: #09090a;
+}
+.sw-update-tabs .product-logo img { width: 31px; height: 31px; max-width: none; max-height: none; object-fit: contain; }
+.sw-update-tabs .product-logo-identity img { width: 34px; height: 34px; }
+.sw-update-tabs .product-logo-connect img { width: 35px; height: 35px; }
+.sw-update-tabs button > span { min-width: 0; gap: 5px; }
+.sw-update-tabs strong { line-height: 1.3; }
+
+@media (max-width: 700px) {
+  .signal-editorial-site .topbar .brand-mark { width: 62px; height: 40px; padding-inline: 13px; }
+  .signal-editorial-site .topbar .brand-mark img { width: 30px; height: 30px; }
+
+  .member-home-shell .member-command-bar {
+    display: flex;
+    min-height: 68px;
+    gap: 8px;
+    padding-inline: 10px;
+  }
+  .member-home-shell .member-brand { flex: 1 1 auto; }
+  .member-home-shell .member-brand img { width: 36px; height: 36px; padding: 7px; }
+  .member-home-shell .member-brand > span { min-width: 0; font-size: 10px; white-space: nowrap; }
+  .member-home-shell .member-home-tools { grid-column: auto; gap: 4px; }
+  .member-home-shell .member-home-tools > a,
+  .member-home-shell .member-home-tools > button,
+  .member-home-shell .member-dashboard-button {
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+  .member-home-shell .member-command-surface { top: 62px; right: 8px; }
+  .member-home-shell .member-home-content { padding-top: 44px; }
+  .member-home-shell .member-welcome { margin-bottom: 40px; }
+  .member-home-shell .member-welcome h1 { font-size: clamp(42px, 13vw, 56px); line-height: .98; }
+  .member-home-shell .member-briefing { min-height: 390px; }
+}
+
+@media (max-width: 420px) {
+  .member-home-shell .member-brand > span { display: none; }
+  .member-home-shell .member-home-tools > a,
+  .member-home-shell .member-home-tools > button,
+  .member-home-shell .member-dashboard-button { width: 35px; min-width: 35px; }
+}
