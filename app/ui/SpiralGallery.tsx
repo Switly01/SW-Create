@@ -42,11 +42,11 @@ export function SpiralGallery() {
       const mobile = window.innerWidth < 700;
       const delta = Math.min(34, Math.max(0, time - previousTime));
       previousTime = time;
-      phase += reducedMotion ? 0 : delta * .000065;
+      phase += reducedMotion ? 0 : delta * .000052;
 
       const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
-      const radiusY = mobile ? 118 : Math.min(window.innerHeight * .2, 188);
-      const radiusZ = mobile ? 270 : 520;
+      const radiusY = mobile ? 64 : Math.min(window.innerHeight * .105, 94);
+      const radiusZ = mobile ? 145 : 220;
       items.forEach((item, index) => {
         const angle = index * (Math.PI * 2 / items.length) - Math.PI * .5 + phase;
         const x = Math.cos(angle) * radiusX;
@@ -57,14 +57,16 @@ export function SpiralGallery() {
         // Keep every card on a generously sized render surface and only scale
         // it down. Upscaling a small GPU layer during the orbit made otherwise
         // high-resolution artwork look visibly pixelated.
-        const scale = .38 + depthEase * .12;
+        const scale = .38 + depthEase * .1;
         // Keep a focused front arc instead of exposing the entire ring. A
         // wide smoothstep leaves roughly eight to ten frames in view without
         // bringing back the former hard appearance/disappearance.
         const fadeProgress = Math.max(0, Math.min(1, (depth - .52) / .3));
         const visibility = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-        const bank = Math.cos(angle) * -5;
-        item.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${bank}deg) scale(${scale})`;
+        const orbitZ = (depth - .5) * radiusZ * 1.65;
+        const yaw = Math.cos(angle) * (mobile ? -10 : -16);
+        const pitch = -6 + depthEase * 3;
+        item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
         item.style.filter = "none";
