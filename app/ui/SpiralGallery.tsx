@@ -34,51 +34,37 @@ export function SpiralGallery() {
     const items = Array.from(ring.querySelectorAll<HTMLElement>("figure"));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
-    let progress = 0;
-    let previousTime = performance.now();
+    const startedAt = performance.now();
+    const holdDuration = 2200;
+    const transitionDuration = 1400;
+    const cycleDuration = holdDuration + transitionDuration;
     ring.style.transform = "none";
 
     const paint = (time: number) => {
-      const mobile = window.innerWidth < 700;
-      const delta = Math.min(34, Math.max(0, time - previousTime));
-      previousTime = time;
-      progress += reducedMotion ? 0 : delta * .00032;
+      const elapsed = reducedMotion ? 0 : Math.max(0, time - startedAt);
+      const currentIndex = Math.floor(elapsed / cycleDuration) % items.length;
+      const nextIndex = (currentIndex + 1) % items.length;
+      const phase = elapsed % cycleDuration;
+      const linearBlend = Math.max(0, Math.min(1, (phase - holdDuration) / transitionDuration));
+      const blend = linearBlend * linearBlend * linearBlend * (linearBlend * (linearBlend * 6 - 15) + 10);
 
-      const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
-      const radiusZ = mobile ? 145 : 220;
       items.forEach((item, index) => {
-        let distance = (index - progress + items.length / 2) % items.length;
-        if (distance < 0) distance += items.length;
-        distance -= items.length / 2;
-        const visibleRadius = mobile ? 3.4 : 5.4;
-        const absoluteDistance = Math.abs(distance);
-        if (absoluteDistance > visibleRadius + 1) {
+        if (index !== currentIndex && index !== nextIndex) {
           item.style.opacity = "0";
           item.style.visibility = "hidden";
           return;
         }
 
-        const position = distance / visibleRadius;
-        const angle = position * 1.18;
-        const x = Math.sin(angle) * radiusX;
-        const depth = Math.max(0, Math.cos(angle));
-        const depthEase = depth * depth * (3 - 2 * depth);
-        const y = -30 + depthEase * (mobile ? 66 : 92);
-        // Keep every card on a generously sized render surface and only scale
-        // it down. Upscaling a small GPU layer during the orbit made otherwise
-        // high-resolution artwork look visibly pixelated.
-        const scale = .34 + depthEase * .14;
-        const edgeFade = Math.max(0, Math.min(1, visibleRadius + 1 - absoluteDistance));
-        const smoothEdge = edgeFade * edgeFade * (3 - 2 * edgeFade);
-        const visibility = smoothEdge * (.36 + depthEase * .64);
-        const orbitZ = (depthEase - .5) * radiusZ * 1.65;
-        const yaw = position * (mobile ? -10 : -16);
-        const pitch = -6 + depthEase * 3;
-        item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
-        item.style.opacity = String(visibility);
-        item.style.visibility = visibility < .015 ? "hidden" : "visible";
+        const incoming = index === nextIndex;
+        const opacity = incoming ? blend : 1 - blend;
+        const translateX = incoming ? (1 - blend) * 18 : blend * -14;
+        const translateY = incoming ? (1 - blend) * 8 : blend * -5;
+        const scale = incoming ? .985 + blend * .015 : 1 - blend * .018;
+        item.style.transform = `translate3d(${translateX}px, ${translateY}px, ${incoming ? 8 : 0}px) scale(${scale})`;
+        item.style.opacity = String(opacity);
+        item.style.visibility = opacity < .004 ? "hidden" : "visible";
         item.style.filter = "none";
-        item.style.zIndex = String(10 + Math.round(depthEase * 100));
+        item.style.zIndex = incoming ? "2" : "1";
       });
       frame = window.requestAnimationFrame(paint);
     };
@@ -98,7 +84,7 @@ export function SpiralGallery() {
               src={src}
               alt=""
               draggable={false}
-              loading={index < 8 || index >= galleryFrames.length - 7 ? "eager" : "lazy"}
+              loading={index < 2 ? "eager" : "lazy"}
               decoding="async"
               style={{ objectPosition: position }}
             />
