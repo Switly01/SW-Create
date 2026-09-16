@@ -52,12 +52,12 @@ export function SpiralGallery() {
       // A restrained vertical wheel: the next horizontal frame enters from
       // above, rounds the near side of the orbit, then exits below. The rear
       // half stays visually quiet so the hero never becomes a wall of images.
-      const orbitSlots = mobile ? 10 : 12;
+      const orbitSlots = mobile ? 8 : 10;
       const angleStep = (Math.PI * 2) / orbitSlots;
       const orbitRadius = mobile
-        ? Math.min(window.innerWidth * .32, 145)
-        : Math.min(window.innerWidth * .2, window.innerHeight * .3, 230);
-      const radiusZ = mobile ? 150 : 230;
+        ? Math.min(window.innerWidth * .38, 165)
+        : Math.min(window.innerWidth * .245, window.innerHeight * .34, 265);
+      const radiusZ = mobile ? 175 : 255;
       const renderRadius = orbitSlots / 2;
 
       items.forEach((item, index) => {
