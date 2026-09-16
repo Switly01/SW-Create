@@ -64,21 +64,26 @@ export function SpiralGallery() {
         const x = Math.cos(angle) * radiusX;
         const z = Math.sin(angle) * radiusZ;
         const depth = (z + radiusZ) / (radiusZ * 2);
+        const depthEase = depth * depth * (3 - 2 * depth);
         const y = Math.sin(angle) * radiusY;
         // Keep every card on a generously sized render surface and only scale
         // it down. Upscaling a small GPU layer during the orbit made otherwise
         // high-resolution artwork look visibly pixelated.
-        const scale = .52 + depth * .28;
-        const orbitVisibility = Math.max(0, Math.min(1, (depth - .8) / .2));
-        const visibility = Math.pow(orbitVisibility, .68);
+        const scale = .52 + depthEase * .28;
+        // Keep all twenty frames present around the single ring. The broad
+        // depth fade avoids the previous sudden pop at the front edge.
+        const visibility = .16 + depthEase * .84;
+        const stackProgress = ((angle + Math.PI * .5) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
         let tangent = Math.atan2(radiusY * Math.cos(angle), -radiusX * Math.sin(angle)) * 180 / Math.PI;
         if (tangent > 90) tangent -= 180;
         if (tangent < -90) tangent += 180;
         item.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${tangent}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
-        item.style.visibility = visibility < .015 ? "hidden" : "visible";
+        item.style.visibility = "visible";
         item.style.filter = "none";
-        item.style.zIndex = String(Math.round(depth * 100));
+        // Reorder only while a card passes the dim rear point. This prevents
+        // two overlapping front cards from abruptly snapping over each other.
+        item.style.zIndex = String(10 + Math.floor(stackProgress / (Math.PI * 2) * 1000));
       });
       frame = window.requestAnimationFrame(paint);
     };
