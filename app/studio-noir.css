@@ -1673,14 +1673,14 @@ body {
   background: #120b0d;
   box-shadow: 0 28px 72px rgba(0,0,0,.58);
   transform-style: preserve-3d;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 .cinematic-gallery figure::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.08), transparent 34%, rgba(91,3,13,.22));
+  background: linear-gradient(135deg, rgba(255,255,255,.045), transparent 34%, rgba(91,3,13,.08));
 }
 
 .cinematic-gallery img { width: 100%; height: 100%; object-fit: cover; user-select: none; }
@@ -2540,7 +2540,7 @@ body {
   isolation: isolate;
   background:
     linear-gradient(90deg, rgba(4,4,5,.92), rgba(4,4,5,.25) 58%, rgba(4,4,5,.7)),
-    url("/editorial/performance-stage.webp") center / cover no-repeat;
+    url("/editorial/hq2x-performance-stage.webp") center / cover no-repeat;
 }
 .signal-editorial-site .closing-section::before { content: ""; position: absolute; z-index: -1; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 8.2vw, rgba(255,255,255,.08) 8.2vw calc(8.2vw + 1px)); }
 
@@ -2894,7 +2894,7 @@ body {
 }
 .signal-editorial-site .cinematic-gallery-ring-primary figure img {
   image-rendering: auto;
-  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .signal-editorial-site .product-gallery .product-card-4,
