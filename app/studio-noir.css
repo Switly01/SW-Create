@@ -3234,6 +3234,10 @@ html.sw-layout-guard body { max-width: 100%; overflow-x: hidden; }
 .portal-language-dock { max-width: calc(100vw - 24px); }
 .portal-language-dock select { text-overflow: ellipsis; }
 
+@media (min-width: 701px) {
+  .member-shell:has(~ .portal-language-dock) .member-topbar { padding-right: max(210px, calc((100% - 1180px) / 2)); }
+}
+
 @media (max-width: 700px) {
   .signal-editorial-site .hero-broadcast,
   .signal-editorial-site[dir="rtl"] .hero-broadcast { left: 50%; width: 100vw; min-width: 100vw; transform: translateX(-50%); }
@@ -3248,4 +3252,18 @@ html.sw-layout-guard body { max-width: 100%; overflow-x: hidden; }
   .subscription-family > header { min-height: 0; margin-bottom: 18px; }
   .sw-plan-product { padding: 24px; }
   .sw-plan-product > header { gap: 10px; margin-bottom: 24px; }
+  .account-center-shell .member-layout > aside {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+    overflow-x: visible;
+  }
+  .account-center-shell .member-layout > aside button {
+    grid-column: span 2;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 6px;
+    text-align: center;
+  }
+  .account-center-shell .member-layout > aside button:nth-of-type(n + 4) { grid-column: span 3; }
 }
