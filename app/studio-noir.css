@@ -2959,12 +2959,12 @@ body {
 
 @media (min-width: 1180px) {
   .signal-editorial-site .cinematic-gallery { width: min(1380px, 96vw); height: min(860px, 82vh); }
-  .signal-editorial-site .cinematic-gallery::after { width: min(84vmin, 780px); height: min(84vmin, 780px); }
+  .signal-editorial-site .cinematic-gallery::after { width: min(92vw, 1120px); height: min(76vh, 720px); }
   .signal-editorial-site .cinematic-gallery-ring-primary figure {
-    top: calc(50% - 122px);
-    left: calc(50% - 195px);
-    width: 390px;
-    height: 244px;
+    top: calc(50% - 132px);
+    left: calc(50% - 210px);
+    width: 420px;
+    height: 263px;
   }
 }
 

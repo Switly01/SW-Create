@@ -60,6 +60,9 @@ export function SpiralGallery() {
         : largeDesktop
           ? Math.min(window.innerWidth * .31, window.innerHeight * .43, 360)
           : Math.min(window.innerWidth * .245, window.innerHeight * .34, 265);
+      const horizontalRadius = largeDesktop
+        ? Math.min(window.innerWidth * .37, 560)
+        : orbitRadius;
       const radiusZ = mobile ? 175 : largeDesktop ? 330 : 255;
       const renderRadius = orbitSlots / 2;
 
@@ -75,7 +78,9 @@ export function SpiralGallery() {
         }
 
         const angle = distance * angleStep;
-        const x = -Math.cos(angle) * orbitRadius;
+        const x = largeDesktop
+          ? Math.sin(angle) * horizontalRadius - Math.cos(angle) * orbitRadius * .22
+          : -Math.cos(angle) * orbitRadius;
         const y = Math.sin(angle) * orbitRadius;
         const z = Math.cos(angle) * radiusZ;
         const depth = (z + radiusZ) / (radiusZ * 2);
