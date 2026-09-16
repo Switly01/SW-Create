@@ -69,17 +69,19 @@ export function SpiralGallery() {
         // Keep every card on a generously sized render surface and only scale
         // it down. Upscaling a small GPU layer during the orbit made otherwise
         // high-resolution artwork look visibly pixelated.
-        const scale = .52 + depthEase * .28;
-        // Keep all twenty frames present around the single ring. The broad
-        // depth fade avoids the previous sudden pop at the front edge.
-        const visibility = .16 + depthEase * .84;
+        const scale = .38 + depthEase * .12;
+        // Keep a focused front arc instead of exposing the entire ring. A
+        // wide smoothstep leaves roughly eight to ten frames in view without
+        // bringing back the former hard appearance/disappearance.
+        const fadeProgress = Math.max(0, Math.min(1, (depth - .52) / .3));
+        const visibility = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
         const stackProgress = ((angle + Math.PI * .5) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
         let tangent = Math.atan2(radiusY * Math.cos(angle), -radiusX * Math.sin(angle)) * 180 / Math.PI;
         if (tangent > 90) tangent -= 180;
         if (tangent < -90) tangent += 180;
         item.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${tangent}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
-        item.style.visibility = "visible";
+        item.style.visibility = visibility < .015 ? "hidden" : "visible";
         item.style.filter = "none";
         // Reorder only while a card passes the dim rear point. This prevents
         // two overlapping front cards from abruptly snapping over each other.
