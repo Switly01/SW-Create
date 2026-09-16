@@ -53,7 +53,7 @@ const products = [
     state: "CANLI",
     color: "coral",
     logo: "/brand/play-connect-pc-logo.svg",
-    visual: "/editorial/product-play-connect-original.png",
+    visual: "/editorial/product-play-connect-original-2x.png",
     href: "https://pstreamers.com",
   },
   {
