@@ -2885,14 +2885,13 @@ body {
 @keyframes kinetic-right { from { transform: translateX(-25%); } to { transform: translateX(0); } }
 
 .signal-editorial-site .cinematic-gallery-ring-primary figure {
-  top: calc(50% - 164px);
-  left: calc(50% - 262px);
-  width: 524px;
-  height: 328px;
+  top: calc(50% - 112px);
+  left: calc(50% - 180px);
+  width: 360px;
+  height: 225px;
   border-color: rgba(255,255,255,.28);
   box-shadow: 0 24px 58px rgba(0,0,0,.78);
 }
-.signal-editorial-site .cinematic-gallery::after { display: none; }
 .signal-editorial-site .cinematic-gallery-ring-primary figure img {
   image-rendering: auto;
   backface-visibility: hidden;
@@ -2951,19 +2950,19 @@ body {
 
 @media (max-width: 1100px) and (min-width: 761px) {
   .signal-editorial-site .cinematic-gallery-ring-primary figure {
-    top: calc(50% - 128px);
-    left: calc(50% - 205px);
-    width: 410px;
-    height: 256px;
+    top: calc(50% - 90px);
+    left: calc(50% - 144px);
+    width: 288px;
+    height: 180px;
   }
 }
 
 @media (max-width: 760px) {
   .signal-editorial-site .cinematic-gallery-ring-primary figure {
-    top: calc(50% - 94px);
-    left: calc(50% - 150px);
-    width: 300px;
-    height: 188px;
+    top: calc(50% - 78px);
+    left: calc(50% - 125px);
+    width: 250px;
+    height: 156px;
   }
   .signal-editorial-site .hero-copy h1 { line-height: .94; letter-spacing: -.055em; }
   .signal-editorial-site .field-atlas-heading h2,

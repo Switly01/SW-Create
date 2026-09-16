@@ -35,36 +35,53 @@ export function SpiralGallery() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     const startedAt = performance.now();
-    const holdDuration = 2200;
-    const transitionDuration = 1400;
+    const holdDuration = 900;
+    const transitionDuration = 1700;
     const cycleDuration = holdDuration + transitionDuration;
     ring.style.transform = "none";
 
     const paint = (time: number) => {
+      const mobile = window.innerWidth < 700;
       const elapsed = reducedMotion ? 0 : Math.max(0, time - startedAt);
-      const currentIndex = Math.floor(elapsed / cycleDuration) % items.length;
-      const nextIndex = (currentIndex + 1) % items.length;
+      const completedSteps = Math.floor(elapsed / cycleDuration);
       const phase = elapsed % cycleDuration;
-      const linearBlend = Math.max(0, Math.min(1, (phase - holdDuration) / transitionDuration));
-      const blend = linearBlend * linearBlend * linearBlend * (linearBlend * (linearBlend * 6 - 15) + 10);
+      const linearShift = Math.max(0, Math.min(1, (phase - holdDuration) / transitionDuration));
+      const easedShift = linearShift * linearShift * linearShift * (linearShift * (linearShift * 6 - 15) + 10);
+      const progress = completedSteps + easedShift;
+
+      const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
+      const radiusZ = mobile ? 145 : 220;
+      const visibleRadius = mobile ? 3.4 : 5.4;
 
       items.forEach((item, index) => {
-        if (index !== currentIndex && index !== nextIndex) {
+        let distance = (index - progress + items.length / 2) % items.length;
+        if (distance < 0) distance += items.length;
+        distance -= items.length / 2;
+        const absoluteDistance = Math.abs(distance);
+        if (absoluteDistance > visibleRadius + 1) {
           item.style.opacity = "0";
           item.style.visibility = "hidden";
           return;
         }
 
-        const incoming = index === nextIndex;
-        const opacity = incoming ? blend : 1 - blend;
-        const translateX = incoming ? (1 - blend) * 18 : blend * -14;
-        const translateY = incoming ? (1 - blend) * 8 : blend * -5;
-        const scale = incoming ? .985 + blend * .015 : 1 - blend * .018;
-        item.style.transform = `translate3d(${translateX}px, ${translateY}px, ${incoming ? 8 : 0}px) scale(${scale})`;
-        item.style.opacity = String(opacity);
-        item.style.visibility = opacity < .004 ? "hidden" : "visible";
+        const position = distance / visibleRadius;
+        const angle = position * 1.18;
+        const x = Math.sin(angle) * radiusX;
+        const depth = Math.max(0, Math.cos(angle));
+        const depthEase = depth * depth * (3 - 2 * depth);
+        const y = -12 + depthEase * (mobile ? 48 : 64);
+        const scale = .52 + depthEase * .48;
+        const edgeFade = Math.max(0, Math.min(1, visibleRadius + 1 - absoluteDistance));
+        const smoothEdge = edgeFade * edgeFade * (3 - 2 * edgeFade);
+        const visibility = smoothEdge * (.28 + depthEase * .72);
+        const orbitZ = (depthEase - .5) * radiusZ * 1.65;
+        const yaw = position * (mobile ? -11 : -18);
+        const pitch = -5 + depthEase * 3;
+        item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
+        item.style.opacity = String(visibility);
+        item.style.visibility = visibility < .015 ? "hidden" : "visible";
         item.style.filter = "none";
-        item.style.zIndex = incoming ? "2" : "1";
+        item.style.zIndex = String(10 + Math.round(depthEase * 100));
       });
       frame = window.requestAnimationFrame(paint);
     };
@@ -84,7 +101,7 @@ export function SpiralGallery() {
               src={src}
               alt=""
               draggable={false}
-              loading={index < 2 ? "eager" : "lazy"}
+              loading={index < 8 || index >= galleryFrames.length - 7 ? "eager" : "lazy"}
               decoding="async"
               style={{ objectPosition: position }}
             />
