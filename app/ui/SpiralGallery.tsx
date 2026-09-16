@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const galleryFrames = [
-  ["/editorial/product-sw-create-original.png", "center center"],
-  ["/editorial/product-play-streamers-original.png", "center center"],
-  ["/editorial/product-play-connect-original-2x.png", "center center"],
-  ["/editorial/product-play-streamers-app-original.png", "center center"],
+const galleryFrames: ReadonlyArray<readonly [string, string]> = [
   ["/editorial/gallery-native-prototype.webp", "center center"],
   ["/editorial/gallery-native-stage.webp", "center center"],
   ["/editorial/gallery-native-hardware.webp", "center center"],
@@ -21,7 +17,11 @@ const galleryFrames = [
   ["/editorial/gallery-native-wind-tunnel.webp", "center center"],
   ["/editorial/gallery-native-computer-vision.webp", "center center"],
   ["/editorial/gallery-native-projection.webp", "center center"],
-] as const;
+  ...Array.from({ length: 84 }, (_, index) => [
+    `/editorial/gallery-orbit-${String(index + 17).padStart(3, "0")}.webp`,
+    "center center",
+  ] as const),
+];
 
 export function SpiralGallery() {
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ export function SpiralGallery() {
     const items = Array.from(ring.querySelectorAll<HTMLElement>("figure"));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
-    let phase = 0;
+    let progress = 0;
     let previousTime = performance.now();
     ring.style.transform = "none";
 
@@ -42,29 +42,37 @@ export function SpiralGallery() {
       const mobile = window.innerWidth < 700;
       const delta = Math.min(34, Math.max(0, time - previousTime));
       previousTime = time;
-      phase += reducedMotion ? 0 : delta * .000052;
+      progress += reducedMotion ? 0 : delta * .00032;
 
       const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
-      const radiusY = mobile ? 64 : Math.min(window.innerHeight * .105, 94);
       const radiusZ = mobile ? 145 : 220;
       items.forEach((item, index) => {
-        const angle = index * (Math.PI * 2 / items.length) - Math.PI * .5 + phase;
-        const x = Math.cos(angle) * radiusX;
-        const z = Math.sin(angle) * radiusZ;
-        const depth = (z + radiusZ) / (radiusZ * 2);
+        let distance = (index - progress + items.length / 2) % items.length;
+        if (distance < 0) distance += items.length;
+        distance -= items.length / 2;
+        const visibleRadius = mobile ? 3.4 : 5.4;
+        const absoluteDistance = Math.abs(distance);
+        if (absoluteDistance > visibleRadius + 1) {
+          item.style.opacity = "0";
+          item.style.visibility = "hidden";
+          return;
+        }
+
+        const position = distance / visibleRadius;
+        const angle = position * 1.18;
+        const x = Math.sin(angle) * radiusX;
+        const depth = Math.max(0, Math.cos(angle));
         const depthEase = depth * depth * (3 - 2 * depth);
-        const y = Math.sin(angle) * radiusY;
+        const y = -30 + depthEase * (mobile ? 66 : 92);
         // Keep every card on a generously sized render surface and only scale
         // it down. Upscaling a small GPU layer during the orbit made otherwise
         // high-resolution artwork look visibly pixelated.
-        const scale = .38 + depthEase * .1;
-        // Keep a focused front arc instead of exposing the entire ring. A
-        // wide smoothstep leaves roughly eight to ten frames in view without
-        // bringing back the former hard appearance/disappearance.
-        const fadeProgress = Math.max(0, Math.min(1, (depth - .52) / .3));
-        const visibility = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-        const orbitZ = (depth - .5) * radiusZ * 1.65;
-        const yaw = Math.cos(angle) * (mobile ? -10 : -16);
+        const scale = .34 + depthEase * .14;
+        const edgeFade = Math.max(0, Math.min(1, visibleRadius + 1 - absoluteDistance));
+        const smoothEdge = edgeFade * edgeFade * (3 - 2 * edgeFade);
+        const visibility = smoothEdge * (.36 + depthEase * .64);
+        const orbitZ = (depthEase - .5) * radiusZ * 1.65;
+        const yaw = position * (mobile ? -10 : -16);
         const pitch = -6 + depthEase * 3;
         item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
@@ -86,7 +94,14 @@ export function SpiralGallery() {
       <div className="cinematic-gallery-track cinematic-gallery-ring-primary" data-gallery-ring="outer">
         {galleryFrames.map(([src, position], index) => (
           <figure key={`${src}-${index}`}>
-            <img src={src} alt="" draggable={false} style={{ objectPosition: position }} />
+            <img
+              src={src}
+              alt=""
+              draggable={false}
+              loading={index < 8 || index >= galleryFrames.length - 7 ? "eager" : "lazy"}
+              decoding="async"
+              style={{ objectPosition: position }}
+            />
             <span>SW</span>
           </figure>
         ))}
