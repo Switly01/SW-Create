@@ -26,7 +26,7 @@ a { color: inherit; text-decoration: none; }
 .sw-dual-core-face img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .sw-dual-core-tech { overflow:hidden; background:radial-gradient(circle,rgba(3,224,209,.14),transparent 67%); }
 .sw-dual-core-tech::before,
-.sw-dual-core-tech::after { content:""; position:absolute; z-index:2; inset:2%; border-radius:inherit; pointer-events:none; opacity:0; background:url("/brand/swcreate-logo.png") center/96% 96% no-repeat; mix-blend-mode:screen; }
+.sw-dual-core-tech::after { content:""; position:absolute; z-index:2; inset:2%; border-radius:inherit; pointer-events:none; opacity:0; background:url("/brand/swcreate-logo.webp") center/96% 96% no-repeat; mix-blend-mode:screen; }
 .sw-dual-core-tech::before { filter:saturate(1.8) contrast(1.35) brightness(1.08); animation:sw-pixel-slice 4.6s steps(1,end) infinite; }
 .sw-dual-core-tech::after { filter:saturate(1.35) contrast(1.65) brightness(.72); animation:sw-pixel-block 6.2s steps(1,end) infinite; }
 .sw-dual-core-tech img { width:96%; filter:saturate(1.16) contrast(1.16) brightness(1.03) drop-shadow(0 0 7px rgba(255,64,83,.82)) drop-shadow(0 0 24px rgba(122,13,35,.68)); animation:sw-tech-glitch 4.6s steps(1,end) infinite; }

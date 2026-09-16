@@ -1,10 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /account/
-Disallow: /home/
-Disallow: /center/
-Disallow: /dashboard/
-Disallow: /plans/
-Disallow: /updates/
 
 Sitemap: https://swcreate.com/sitemap.xml

@@ -134,6 +134,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     headers: {
       accept: "application/json",
       "x-sw-flow-id": flowId,
+      "x-sw-language": window.localStorage.getItem("sw-language") || document.documentElement.lang || "tr",
       ...(init.body && !formBody ? { "content-type": "application/json" } : {}),
       ...init.headers,
     },

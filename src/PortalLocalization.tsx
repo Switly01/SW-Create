@@ -7,7 +7,7 @@ type PortalCatalog = {
   translations: Record<string, string>;
 };
 
-const TRANSLATED_ATTRIBUTES = ["aria-label", "aria-description", "placeholder", "title"] as const;
+const TRANSLATED_ATTRIBUTES = ["alt", "aria-label", "aria-description", "placeholder", "title"] as const;
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

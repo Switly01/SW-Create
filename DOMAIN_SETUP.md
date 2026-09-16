@@ -39,3 +39,20 @@ Bu değer GitHub'a veya istemci koduna konulmaz.
 - `https://www.swcreate.com` ana alana yönleniyor mu
 - `https://api.swcreate.com/api/health` 200 ve `database: connected` dönüyor mu
 - kayıt, giriş, yenileme sonrası oturum ve çıkış akışları çalışıyor mu
+
+## Arama ve güvenlik katmanı
+
+- Search Console sahipliği ve sitemap gönderimi için `SEARCH_CONSOLE_SETUP.md`
+  dosyasındaki hesap sahibi adımlarını uygula.
+- GitHub Pages, ana belge için HSTS, CSP, `nosniff` ve frame koruma başlıklarını
+  özelleştirmez. Alan adı Cloudflare proxy/Pages üzerinden sunulmaya geçirildiğinde
+  şu yanıt başlıklarını ekle ve Turnstile, SW API, QR kitaplığı ve harita iframe
+  kaynaklarını CSP izin listesinde koru:
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `Content-Security-Policy` içinde en az `default-src 'self'`,
+    `object-src 'none'`, `base-uri 'self'` ve `frame-ancestors 'none'`
+- Bu geçiş canlı DNS ve barındırma davranışını değiştirdiğinden, ayrı bir yayın
+  adımı ve canlı kayıt/giriş/OAuth regresyonu olmadan etkinleştirilmemelidir.

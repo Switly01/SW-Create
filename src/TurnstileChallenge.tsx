@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { TURNSTILE_SITE_KEY } from "./security";
+import { savedSwLanguage } from "./languages";
 
 declare global {
   interface Window {
@@ -23,6 +24,7 @@ export function TurnstileChallenge({ onToken, resetSignal }: { onToken: (token: 
         sitekey: TURNSTILE_SITE_KEY,
         theme: "dark",
         size: "flexible",
+        language: savedSwLanguage(),
         action: "sw-auth",
         callback: (token: string) => onToken(token),
         "expired-callback": () => onToken(""),

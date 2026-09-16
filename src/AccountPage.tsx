@@ -263,7 +263,7 @@ function AccountPanel() {
     finally { setBusy(false); }
   }
 
-  if (checking) return <section className="account-panel"><div className="auth-box"><p className="section-number">SW IDENTITY</p><h1>HESAP<br />KONTROLÜ.</h1></div></section>;
+  if (checking) return <section className="account-panel" aria-busy="true"><div className="auth-box auth-box-checking"><p className="section-number">SW IDENTITY</p><h1>HESAP<br />KONTROLÜ.</h1></div></section>;
 
   return (
     <section className="account-panel">
@@ -300,13 +300,13 @@ function AccountPanel() {
           <div className={`social-auth social-auth-icons ${mode === "register" ? "register-providers" : "login-providers"}`} aria-label="Hesap sağlayıcısı">
             {mode === "login" && <button type="button" className="social-auth-button sw" title="SW Identity ile devam et" aria-label="SW Identity ile devam et" aria-haspopup="dialog" aria-expanded={nativeInfoOpen} onClick={() => {
               setNativeInfoOpen((open) => !open);
-            }}><img src="/brand/swcreate-logo.png" alt="" /></button>}
+            }}><img src="/brand/swcreate-logo-128.webp" alt="" /></button>}
             <a className="social-auth-button google" href={oauthUrl("google")} title="Google ile devam et" aria-label="Google ile devam et"><GoogleMark /></a>
             <a className="social-auth-button kick" href={oauthUrl("kick")} title="Kick ile devam et" aria-label="Kick ile devam et"><KickMark /></a>
           </div>
 
           {mode === "login" && nativeInfoOpen && <aside className="native-provider-panel" aria-live="polite">
-            <img src="/brand/swcreate-logo.png" alt="" />
+            <img src="/brand/swcreate-logo-128.webp" alt="" />
             <div><strong>SW IDENTITY</strong><p>SW kullanıcı adın veya e-postan ve şifrenle doğrudan giriş yap. Bilgilerini yukarıdaki güvenli alana yazman yeterli.</p></div>
             <button type="button" onClick={() => identityInputRef.current?.focus()}>Bilgilerime dön</button>
           </aside>}
@@ -321,7 +321,7 @@ function AccountPanel() {
         {mode === "login" && nativeInfoOpen && <div className="sw-account-picker" role="dialog" aria-modal="true" aria-labelledby="sw-account-picker-title">
           <button type="button" className="sw-account-picker-backdrop" onClick={() => setNativeInfoOpen(false)} aria-label="Hesap seçiciyi kapat" />
           <section>
-            <header><img src="/brand/swcreate-logo.png" alt="" /><div><span>SW IDENTITY</span><h2 id="sw-account-picker-title">Bir hesap seç</h2></div><button type="button" onClick={() => setNativeInfoOpen(false)} aria-label="Kapat">×</button></header>
+            <header><img src="/brand/swcreate-logo-128.webp" alt="" /><div><span>SW IDENTITY</span><h2 id="sw-account-picker-title">Bir hesap seç</h2></div><button type="button" onClick={() => setNativeInfoOpen(false)} aria-label="Kapat">×</button></header>
             <p>Bu cihazda daha önce kullanılan SW hesapları. Yalnızca hesap adı hatırlanır; şifren cihazda saklanmaz.</p>
             <div className="sw-account-picker-list">
               {rememberedAccounts.map((account) => <div className="sw-account-picker-row" key={account.id}><button type="button" className="sw-account-picker-select" disabled={busy} onClick={() => void chooseRememberedAccount(account)}><span>{account.displayName.slice(0, 1).toLocaleUpperCase("tr-TR")}</span><div><strong>{account.displayName}</strong><small>@{account.username}{account.loginToken ? " · HIZLI GİRİŞ" : ""}</small></div><b aria-hidden="true">→</b></button><button type="button" className="sw-account-picker-forget" aria-label={`${account.displayName} hesabını bu cihazdan unut`} onClick={() => setRememberedAccounts(forgetRememberedSwAccount(account.id))}>×</button></div>)}
@@ -344,7 +344,7 @@ export function AccountPage() {
   return (
     <main className="account-shell auth-entry-shell">
       <header className="auth-entry-header">
-        <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo.png" alt="" /></span><span>SW CREATE</span></a>
+        <a className="brand" href="/"><span className="brand-mark"><img src="/brand/swcreate-logo-128.webp" alt="" /></span><span>SW CREATE</span></a>
         <span><i /> IDENTITY NETWORK / SECURE</span>
         <a href="/">STÜDYOYA DÖN <b>↗</b></a>
       </header>

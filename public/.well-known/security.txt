@@ -1,0 +1,5 @@
+Contact: mailto:swcreate.info@gmail.com
+Canonical: https://swcreate.com/.well-known/security.txt
+Preferred-Languages: tr, en
+Policy: https://swcreate.com/privacy/
+Expires: 2027-09-16T00:00:00.000Z

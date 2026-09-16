@@ -11,6 +11,15 @@ export const SW_LANGUAGES = [
 
 export type SwLanguage = typeof SW_LANGUAGES[number][0];
 
+export function publicLanguagePath(language: SwLanguage) {
+  return language === "tr" ? "/" : `/${language}/`;
+}
+
+export function publicPathLanguage(pathname = window.location.pathname): SwLanguage | null {
+  const segment = pathname.split("/").filter(Boolean)[0];
+  return SW_LANGUAGES.some(([code]) => code === segment) ? segment as SwLanguage : null;
+}
+
 const SW_LOCALE_TAGS: Record<SwLanguage, string> = {
   tr: "tr-TR",
   en: "en-US",
@@ -27,6 +36,8 @@ export function swLocaleTag(language: SwLanguage) {
 }
 
 export function savedSwLanguage(): SwLanguage {
+  const pathLanguage = publicPathLanguage();
+  if (pathLanguage) return pathLanguage;
   const saved = window.localStorage.getItem("sw-language");
   return SW_LANGUAGES.some(([code]) => code === saved) ? saved as SwLanguage : "tr";
 }

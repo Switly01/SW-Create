@@ -90,6 +90,33 @@ function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 }
 
+const EMAIL_COPY = {
+  tr: { subject: "SW Identity doğrulama kodun", code: "Kod", expires: "Kod 10 dakika geçerlidir.", footer: "Bu mesaj SW Identity güvenlik veri akışı tarafından gönderildi. İsteği sen yapmadıysan kodu paylaşma.", fallbackTitle: "SW Identity doğrulaması", fallbackMessage: "İşlemi doğrulamak için kodu kullan.", titles: { email_change: "E-posta adresini doğrula", password_change: "Şifre değişikliğini doğrula", password_reset: "Şifreni sıfırla", account_delete: "Hesap silme isteğini doğrula" }, messages: { email_change: "Yeni e-posta adresini SW hesabına bağlamak için bu kodu kullan.", password_change: "SW hesabının şifresini değiştirmek için bu kodu kullan.", password_reset: "SW hesabının şifresini sıfırlamak için bu kodu kullan.", account_delete: "SW hesabını kalıcı olarak silmek için bu kodu kullan." } },
+  en: { subject: "Your SW Identity verification code", code: "Code", expires: "The code is valid for 10 minutes.", footer: "This message was sent by the SW Identity security flow. If you did not make this request, do not share the code.", fallbackTitle: "SW Identity verification", fallbackMessage: "Use this code to verify the action.", titles: { email_change: "Verify your email address", password_change: "Verify the password change", password_reset: "Reset your password", account_delete: "Verify the account deletion request" }, messages: { email_change: "Use this code to link the new email address to your SW account.", password_change: "Use this code to change your SW account password.", password_reset: "Use this code to reset your SW account password.", account_delete: "Use this code to permanently delete your SW account." } },
+  de: { subject: "Dein SW-Identity-Bestätigungscode", code: "Code", expires: "Der Code ist 10 Minuten gültig.", footer: "Diese Nachricht wurde vom SW-Identity-Sicherheitsablauf gesendet. Wenn du die Anfrage nicht gestellt hast, teile den Code nicht.", fallbackTitle: "SW-Identity-Bestätigung", fallbackMessage: "Bestätige den Vorgang mit diesem Code.", titles: { email_change: "E-Mail-Adresse bestätigen", password_change: "Passwortänderung bestätigen", password_reset: "Passwort zurücksetzen", account_delete: "Kontolöschung bestätigen" }, messages: { email_change: "Verknüpfe die neue E-Mail-Adresse mit diesem Code mit deinem SW-Konto.", password_change: "Ändere mit diesem Code das Passwort deines SW-Kontos.", password_reset: "Setze mit diesem Code das Passwort deines SW-Kontos zurück.", account_delete: "Lösche mit diesem Code dein SW-Konto dauerhaft." } },
+  es: { subject: "Tu código de verificación de SW Identity", code: "Código", expires: "El código es válido durante 10 minutos.", footer: "Este mensaje fue enviado por el flujo de seguridad de SW Identity. Si no realizaste esta solicitud, no compartas el código.", fallbackTitle: "Verificación de SW Identity", fallbackMessage: "Usa este código para verificar la operación.", titles: { email_change: "Verifica tu correo electrónico", password_change: "Verifica el cambio de contraseña", password_reset: "Restablece tu contraseña", account_delete: "Verifica la eliminación de la cuenta" }, messages: { email_change: "Usa este código para vincular el nuevo correo a tu cuenta SW.", password_change: "Usa este código para cambiar la contraseña de tu cuenta SW.", password_reset: "Usa este código para restablecer la contraseña de tu cuenta SW.", account_delete: "Usa este código para eliminar definitivamente tu cuenta SW." } },
+  fr: { subject: "Votre code de vérification SW Identity", code: "Code", expires: "Le code est valable pendant 10 minutes.", footer: "Ce message a été envoyé par le flux de sécurité SW Identity. Si vous n’êtes pas à l’origine de cette demande, ne partagez pas le code.", fallbackTitle: "Vérification SW Identity", fallbackMessage: "Utilisez ce code pour vérifier l’opération.", titles: { email_change: "Vérifiez votre adresse e-mail", password_change: "Vérifiez le changement de mot de passe", password_reset: "Réinitialisez votre mot de passe", account_delete: "Vérifiez la demande de suppression du compte" }, messages: { email_change: "Utilisez ce code pour associer la nouvelle adresse e-mail à votre compte SW.", password_change: "Utilisez ce code pour modifier le mot de passe de votre compte SW.", password_reset: "Utilisez ce code pour réinitialiser le mot de passe de votre compte SW.", account_delete: "Utilisez ce code pour supprimer définitivement votre compte SW." } },
+  ru: { subject: "Код подтверждения SW Identity", code: "Код", expires: "Код действителен 10 минут.", footer: "Это сообщение отправлено системой безопасности SW Identity. Если запрос сделали не вы, никому не сообщайте код.", fallbackTitle: "Подтверждение SW Identity", fallbackMessage: "Используйте этот код для подтверждения действия.", titles: { email_change: "Подтвердите адрес электронной почты", password_change: "Подтвердите изменение пароля", password_reset: "Сбросьте пароль", account_delete: "Подтвердите удаление аккаунта" }, messages: { email_change: "Используйте этот код, чтобы привязать новый адрес к аккаунту SW.", password_change: "Используйте этот код, чтобы изменить пароль аккаунта SW.", password_reset: "Используйте этот код, чтобы сбросить пароль аккаунта SW.", account_delete: "Используйте этот код, чтобы навсегда удалить аккаунт SW." } },
+  ar: { subject: "رمز التحقق من SW Identity", code: "الرمز", expires: "الرمز صالح لمدة 10 دقائق.", footer: "أُرسلت هذه الرسالة عبر مسار أمان SW Identity. إذا لم تطلب هذا الإجراء فلا تشارك الرمز.", fallbackTitle: "التحقق من SW Identity", fallbackMessage: "استخدم هذا الرمز للتحقق من الإجراء.", titles: { email_change: "تحقق من عنوان البريد الإلكتروني", password_change: "تحقق من تغيير كلمة المرور", password_reset: "أعد تعيين كلمة المرور", account_delete: "تحقق من طلب حذف الحساب" }, messages: { email_change: "استخدم هذا الرمز لربط عنوان البريد الجديد بحساب SW.", password_change: "استخدم هذا الرمز لتغيير كلمة مرور حساب SW.", password_reset: "استخدم هذا الرمز لإعادة تعيين كلمة مرور حساب SW.", account_delete: "استخدم هذا الرمز لحذف حساب SW نهائيًا." } },
+  ja: { subject: "SW Identity確認コード", code: "コード", expires: "コードの有効期限は10分です。", footer: "このメッセージはSW Identityのセキュリティフローから送信されました。心当たりがない場合は、コードを共有しないでください。", fallbackTitle: "SW Identityの確認", fallbackMessage: "このコードで操作を確認してください。", titles: { email_change: "メールアドレスを確認", password_change: "パスワード変更を確認", password_reset: "パスワードをリセット", account_delete: "アカウント削除を確認" }, messages: { email_change: "このコードで新しいメールアドレスをSWアカウントに連携してください。", password_change: "このコードでSWアカウントのパスワードを変更してください。", password_reset: "このコードでSWアカウントのパスワードをリセットしてください。", account_delete: "このコードでSWアカウントを完全に削除してください。" } },
+};
+
+const SUPPORT_EMAIL_COPY = {
+  tr: { ticket: "SW Create Talep", newTicket: "Yeni destek talebi", sender: "Gönderen", email: "E-posta", unlinked: "Bağlı değil", category: "Kategori", categories: { technical: "Teknik sorun", account: "Hesap ve güvenlik", plans: "Planlar ve ürünler", feedback: "Öneri", other: "Diğer" } },
+  en: { ticket: "SW Create Request", newTicket: "New support request", sender: "Sender", email: "Email", unlinked: "Not linked", category: "Category", categories: { technical: "Technical issue", account: "Account and security", plans: "Plans and products", feedback: "Feedback", other: "Other" } },
+  de: { ticket: "SW Create Anfrage", newTicket: "Neue Supportanfrage", sender: "Absender", email: "E-Mail", unlinked: "Nicht verknüpft", category: "Kategorie", categories: { technical: "Technisches Problem", account: "Konto und Sicherheit", plans: "Tarife und Produkte", feedback: "Feedback", other: "Sonstiges" } },
+  es: { ticket: "Solicitud de SW Create", newTicket: "Nueva solicitud de soporte", sender: "Remitente", email: "Correo", unlinked: "Sin vincular", category: "Categoría", categories: { technical: "Problema técnico", account: "Cuenta y seguridad", plans: "Planes y productos", feedback: "Sugerencia", other: "Otro" } },
+  fr: { ticket: "Demande SW Create", newTicket: "Nouvelle demande d’assistance", sender: "Expéditeur", email: "E-mail", unlinked: "Non associé", category: "Catégorie", categories: { technical: "Problème technique", account: "Compte et sécurité", plans: "Offres et produits", feedback: "Suggestion", other: "Autre" } },
+  ru: { ticket: "Запрос SW Create", newTicket: "Новый запрос в поддержку", sender: "Отправитель", email: "Эл. почта", unlinked: "Не привязана", category: "Категория", categories: { technical: "Техническая проблема", account: "Аккаунт и безопасность", plans: "Планы и продукты", feedback: "Предложение", other: "Другое" } },
+  ar: { ticket: "طلب SW Create", newTicket: "طلب دعم جديد", sender: "المرسل", email: "البريد الإلكتروني", unlinked: "غير مرتبط", category: "الفئة", categories: { technical: "مشكلة تقنية", account: "الحساب والأمان", plans: "الخطط والمنتجات", feedback: "اقتراح", other: "أخرى" } },
+  ja: { ticket: "SW Createリクエスト", newTicket: "新しいサポートリクエスト", sender: "送信者", email: "メール", unlinked: "未連携", category: "カテゴリー", categories: { technical: "技術的な問題", account: "アカウントとセキュリティ", plans: "プランと製品", feedback: "提案", other: "その他" } },
+};
+
+function requestLanguage(request) {
+  const language = String(request.headers.get("x-sw-language") || request.headers.get("accept-language") || "tr").toLowerCase().split(/[-,;]/)[0];
+  return Object.hasOwn(EMAIL_COPY, language) ? language : "tr";
+}
+
 async function resendEmail(env, payload) {
   if (!env.RESEND_API_KEY) throw new Error("EMAIL_NOT_CONFIGURED");
   const response = await fetch("https://api.resend.com/emails", {
@@ -102,8 +129,9 @@ async function resendEmail(env, payload) {
   return result;
 }
 
-function identityEmailHtml(title, message, code = "") {
-  return `<!doctype html><html><body style="margin:0;background:#070a10;color:#f3efdf;font-family:Arial,sans-serif"><main style="max-width:560px;margin:auto;padding:42px"><div style="color:#03e0d1;font-size:12px;font-weight:900;letter-spacing:.16em">SW IDENTITY v${SW_IDENTITY_VERSION}</div><h1 style="font-size:34px;margin:18px 0 12px">${escapeHtml(title)}</h1><p style="color:#a8afba;line-height:1.65">${escapeHtml(message)}</p>${code ? `<div style="margin:28px 0;padding:20px;border:1px solid #03e0d1;border-radius:14px;background:#0b1320;color:#ecff3c;font-size:34px;font-weight:900;letter-spacing:.22em;text-align:center">${code}</div>` : ""}<p style="color:#69717e;font-size:12px;line-height:1.6">Bu mesaj SW Identity güvenlik veri akışı tarafından gönderildi. İsteği sen yapmadıysan kodu paylaşma.</p></main></body></html>`;
+function identityEmailHtml(title, message, code = "", language = "tr") {
+  const copy = EMAIL_COPY[language] || EMAIL_COPY.tr;
+  return `<!doctype html><html lang="${language}" dir="${language === "ar" ? "rtl" : "ltr"}"><body style="margin:0;background:#070a10;color:#f3efdf;font-family:Arial,sans-serif"><main style="max-width:560px;margin:auto;padding:42px"><div style="color:#03e0d1;font-size:12px;font-weight:900;letter-spacing:.16em">SW IDENTITY v${SW_IDENTITY_VERSION}</div><h1 style="font-size:34px;margin:18px 0 12px">${escapeHtml(title)}</h1><p style="color:#a8afba;line-height:1.65;white-space:pre-line">${escapeHtml(message)}</p>${code ? `<div style="margin:28px 0;padding:20px;border:1px solid #03e0d1;border-radius:14px;background:#0b1320;color:#ecff3c;font-size:34px;font-weight:900;letter-spacing:.22em;text-align:center">${code}</div>` : ""}<p style="color:#69717e;font-size:12px;line-height:1.6">${escapeHtml(copy.footer)}</p></main></body></html>`;
 }
 
 function redirect(location, cookie) {
@@ -171,7 +199,7 @@ function corsHeaders(request) {
     headers.set("access-control-allow-origin", origin);
     headers.set("access-control-allow-credentials", "true");
     headers.set("access-control-allow-methods", "GET,POST,PUT,DELETE,OPTIONS");
-    headers.set("access-control-allow-headers", "Content-Type, X-SW-Flow-ID");
+    headers.set("access-control-allow-headers", "Content-Type, X-SW-Flow-ID, X-SW-Language");
     headers.set("access-control-expose-headers", "X-SW-Identity, X-SW-Flow-ID");
   }
   return headers;
@@ -608,7 +636,7 @@ async function emailCodeHash(env, email, purpose, code) {
   return sha256(`sw-email-code:${normalizeEmail(email)}:${purpose}:${code}:${env.AUTH_PEPPER}`);
 }
 
-async function issueEmailCode(env, { userId = null, email, purpose }) {
+async function issueEmailCode(env, { userId = null, email, purpose, language = "tr" }) {
   const normalized = normalizeEmail(email);
   if (!normalized) throw new Error("INVALID_EMAIL");
   const now = Math.floor(Date.now() / 1000);
@@ -616,14 +644,15 @@ async function issueEmailCode(env, { userId = null, email, purpose }) {
     WHERE lower(email) = lower(?) AND purpose = ? ORDER BY created_at DESC LIMIT 1`).bind(normalized, purpose).first();
   if (recent && now - Number(recent.createdAt) < EMAIL_CODE_RESEND) throw new Error("EMAIL_CODE_COOLDOWN");
   const code = randomSixDigitCode();
-  const titles = { email_change: "E-posta adresini doğrula", password_change: "Şifre değişikliğini doğrula", password_reset: "Şifreni sıfırla", account_delete: "Hesap silme isteğini doğrula" };
-  const descriptions = { email_change: "Yeni e-posta adresini SW hesabına bağlamak için bu kodu kullan.", password_change: "SW hesabının şifresini değiştirmek için bu kodu kullan.", password_reset: "SW hesabının şifresini sıfırlamak için bu kodu kullan.", account_delete: "SW hesabını kalıcı olarak silmek için bu kodu kullan." };
+  const copy = EMAIL_COPY[language] || EMAIL_COPY.tr;
+  const title = copy.titles[purpose] || copy.fallbackTitle;
+  const description = copy.messages[purpose] || copy.fallbackMessage;
   await resendEmail(env, {
     from: env.RESEND_FROM_EMAIL || "SW Identity <noreply@swcreate.com>",
     to: [normalized],
-    subject: `SW Identity doğrulama kodun: ${code}`,
-    text: `${descriptions[purpose] || "SW Identity işlemini doğrula"}\n\nKod: ${code}\n\nKod 10 dakika geçerlidir.`,
-    html: identityEmailHtml(titles[purpose] || "SW Identity doğrulaması", descriptions[purpose] || "İşlemi doğrulamak için kodu kullan.", code),
+    subject: `${copy.subject}: ${code}`,
+    text: `${description}\n\n${copy.code}: ${code}\n\n${copy.expires}`,
+    html: identityEmailHtml(title, description, code, language),
   });
   await env.DB.batch([
     env.DB.prepare("UPDATE sw_email_codes SET used_at = ? WHERE lower(email) = lower(?) AND purpose = ? AND used_at IS NULL").bind(now, normalized, purpose),
@@ -675,7 +704,9 @@ async function sendSupportTicketEmail(env, request, user, ticketId) {
   }
   const message = await env.DB.prepare(`SELECT body FROM sw_support_messages
     WHERE ticket_id = ? AND sender = 'user' ORDER BY created_at ASC LIMIT 1`).bind(ticketId).first();
-  const categoryNames = { technical: "Teknik sorun", account: "Hesap ve güvenlik", plans: "Planlar ve ürünler", feedback: "Öneri", other: "Diğer" };
+  const language = requestLanguage(request);
+  const supportCopy = SUPPORT_EMAIL_COPY[language] || SUPPORT_EMAIL_COPY.tr;
+  const categoryName = supportCopy.categories[ticket.category] || ticket.category;
   const replyDomain = String(env.SUPPORT_INBOUND_DOMAIN).replace(/^@/, "").trim().toLowerCase();
   const replyTo = `support+${ticket.id}@${replyDomain}`;
   try {
@@ -683,9 +714,9 @@ async function sendSupportTicketEmail(env, request, user, ticketId) {
       from: env.RESEND_FROM_EMAIL || "SW Create Destek <noreply@swcreate.com>",
       to: [env.SUPPORT_EMAIL_RECIPIENT || SUPPORT_RECIPIENT],
       reply_to: replyTo,
-      subject: `[SW Create Talep ${ticket.ticketNumber || supportTicketNumber(ticket.id)}] ${ticket.subject}`,
-      text: `Gönderen: @${user.username || user.displayName}\nE-posta: ${isPublicEmail(user.email) ? user.email : "Bağlı değil"}\nKategori: ${categoryNames[ticket.category] || ticket.category}\n\n${message?.body || ""}`,
-      html: identityEmailHtml(`Yeni destek talebi: ${ticket.subject}`, `Gönderen: @${user.username || user.displayName}\nKategori: ${categoryNames[ticket.category] || ticket.category}\n\n${message?.body || ""}`),
+      subject: `[${supportCopy.ticket} ${ticket.ticketNumber || supportTicketNumber(ticket.id)}] ${ticket.subject}`,
+      text: `${supportCopy.sender}: @${user.username || user.displayName}\n${supportCopy.email}: ${isPublicEmail(user.email) ? user.email : supportCopy.unlinked}\n${supportCopy.category}: ${categoryName}\n\n${message?.body || ""}`,
+      html: identityEmailHtml(`${supportCopy.newTicket}: ${ticket.subject}`, `${supportCopy.sender}: @${user.username || user.displayName}\n${supportCopy.category}: ${categoryName}\n\n${message?.body || ""}`, "", language),
       attachments: await supportEmailAttachments(env, user.id, ticket.id),
     });
     await env.DB.prepare("UPDATE sw_support_tickets SET external_email_id = ?, email_delivery_status = 'sent' WHERE id = ?")
@@ -1648,7 +1679,7 @@ async function requestSecurityChallenge(env, request, user) {
     return json(request, { ok: true, method: "totp", message: "İşlemi Authenticator kodunla doğrula." });
   }
   if (!isPublicEmail(email)) return json(request, { error: "Bu işlem için önce doğrulanabilir bir e-posta adresi gerekiyor." }, 400);
-  const challenge = await issueEmailCode(env, { userId: user.id, email, purpose: action });
+  const challenge = await issueEmailCode(env, { userId: user.id, email, purpose: action, language: requestLanguage(request) });
   return json(request, { ok: true, method: "email", email: challenge.email, expiresAt: challenge.expiresAt });
 }
 
@@ -1714,7 +1745,7 @@ async function requestForgotPassword(env, request) {
   const body = await parseBody(request);
   const email = normalizeEmail(body.email);
   const user = email ? await env.DB.prepare("SELECT id, email FROM sw_users WHERE lower(email) = lower(?) LIMIT 1").bind(email).first() : null;
-  if (user && isPublicEmail(user.email)) await issueEmailCode(env, { userId: user.id, email: user.email, purpose: "password_reset" }).catch(() => undefined);
+  if (user && isPublicEmail(user.email)) await issueEmailCode(env, { userId: user.id, email: user.email, purpose: "password_reset", language: requestLanguage(request) }).catch(() => undefined);
   return json(request, { ok: true, message: "Adres bir SW hesabına bağlıysa doğrulama kodu gönderildi." });
 }
 

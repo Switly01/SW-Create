@@ -29,7 +29,7 @@ export function NotFoundPage() {
 
   return <main className="not-found-page" dir={language === "ar" ? "rtl" : "ltr"}>
     <header className="not-found-header">
-      <a href="/" className="not-found-brand" aria-label="SW Create"><span><img src="/brand/swcreate-logo.png" alt="" /></span><b>SW CREATE</b></a>
+      <a href="/" className="not-found-brand" aria-label="SW Create"><span><img src="/brand/swcreate-logo-128.webp" alt="" /></span><b>SW CREATE</b></a>
       <label><span>{copy.language}</span><select value={language} aria-label={copy.language} onChange={(event) => setLanguage(event.target.value as SwLanguage)}>{SW_LANGUAGES.map(([code, , label]) => <option key={code} value={code}>{label}</option>)}</select></label>
     </header>
     <section className="not-found-content">

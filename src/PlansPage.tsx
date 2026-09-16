@@ -30,7 +30,7 @@ export function PlansPage() {
     };
   });
   return <main className="member-shell sw-plans-page">
-    <header className="member-topbar"><a href="/home/" className="member-brand"><img src="/brand/swcreate-logo.png" alt="" /><span>SW CREATE<small>PLANLAR</small></span></a><div className="member-top-status"><i /> SW IDENTITY v{SW_IDENTITY_VERSION}</div><a className="dashboard-account-link" href="/center/?view=subscriptions">Aboneliklerim</a></header>
+    <header className="member-topbar"><a href="/home/" className="member-brand"><img src="/brand/swcreate-logo-128.webp" alt="" /><span>SW CREATE<small>PLANLAR</small></span></a><div className="member-top-status"><i /> SW IDENTITY v{SW_IDENTITY_VERSION}</div><a className="dashboard-account-link" href="/center/?view=subscriptions">Aboneliklerim</a></header>
     <section className="sw-plans-content"><div className="sw-dashboard-heading"><p>SW PLAN AĞI</p><h1>Ürünlerinle<br />birlikte büyü.</h1><span>SW Create ve Play Streamers planlarını ayrı ürün katmanları olarak gör; etkin planların SW Identity hesabınla eşleşir.</span></div>
       <aside className="sw-plan-safety-note"><span>ABONELİK ALTYAPISI HAZIR</span><p>Ücretsiz planlar hesabına bağlıdır. Ücretli planlar için ödeme alınmıyor; güvenli ve yaş koşullarına uygun sağlayıcı seçilene kadar bu planlar “Yakında” durumunda kalır.</p></aside>
       <div className="sw-plan-products">{productOrder.map((productId) => {

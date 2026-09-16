@@ -14,7 +14,7 @@ type ReleaseLocale = {
 
 const productOrder: ProductKey[] = ["swcreate", "identity", "web", "app", "connect"];
 const productLogos: Record<ProductKey, string> = {
-  swcreate: "/brand/swcreate-logo.png",
+  swcreate: "/brand/swcreate-logo-128.webp",
   identity: "/brand/sw-identity-logo.svg",
   web: "/brand/play-streamers-ps-logo.svg",
   app: "/brand/play-streamers-ps-logo.svg",
@@ -36,7 +36,7 @@ export function UpdateNotesPage() {
   if (!account) return <main className="member-shell"><div className="member-loading">{archive.ui.loading}</div></main>;
   const history = archive.products[active];
   return <main className="member-shell sw-updates-page">
-    <header className="member-topbar"><a href="/home/" className="member-brand"><img src="/brand/swcreate-logo.png" alt="" /><span>SW CREATE<small>{archive.ui.title.toLocaleUpperCase(locale)}</small></span></a><div className="member-top-status"><i /> SW IDENTITY v{SW_IDENTITY_VERSION}</div><div className="sw-updates-header-actions"><label><span className="sr-only">{archive.ui.language}</span><select value={locale} aria-label={archive.ui.language} onChange={event => setLocale(event.target.value as SwLanguage)}>{SW_LANGUAGES.map(([code,,label]) => <option key={code} value={code}>{label}</option>)}</select></label><a className="dashboard-account-link" href="/home/">{archive.ui.memberHome}</a></div></header>
+    <header className="member-topbar"><a href="/home/" className="member-brand"><img src="/brand/swcreate-logo-128.webp" alt="" /><span>SW CREATE<small>{archive.ui.title.toLocaleUpperCase(locale)}</small></span></a><div className="member-top-status"><i /> SW IDENTITY v{SW_IDENTITY_VERSION}</div><div className="sw-updates-header-actions"><label><span className="sr-only">{archive.ui.language}</span><select value={locale} aria-label={archive.ui.language} onChange={event => setLocale(event.target.value as SwLanguage)}>{SW_LANGUAGES.map(([code,,label]) => <option key={code} value={code}>{label}</option>)}</select></label><a className="dashboard-account-link" href="/home/">{archive.ui.memberHome}</a></div></header>
     <section className="sw-updates-content">
       <div className="sw-dashboard-heading"><p>{archive.ui.eyebrow}</p><h1>{archive.ui.title}</h1><span>{archive.ui.intro}</span></div>
       <nav className="sw-update-tabs" aria-label={archive.ui.title}>{productOrder.map((key) => { const item = archive.products[key]; return <button key={key} type="button" className={active === key ? "active" : ""} aria-pressed={active === key} onClick={() => setActive(key)}><b className={`product-logo product-logo-${key}`}><img src={productLogos[key]} alt="" /></b><span><strong>{item.tabTitle}</strong><small>{item.current}</small></span><i aria-hidden="true">→</i></button>; })}</nav>

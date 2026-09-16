@@ -586,7 +586,7 @@ body {
 .signal-editorial-site .footer-privacy strong { color: #fff; font-size: 11px; letter-spacing: .08em; }
 .signal-editorial-site .footer-links a:hover { color: var(--studio-red-soft); transform: none; }
 .signal-editorial-site .footer-privacy { min-height: 150px; align-content: center; padding: 22px; border: 1px solid rgba(255,255,255,.09); border-radius: 22px; background: #141415; }
-.signal-editorial-site .footer-copyright { color: #625d58; font-size: 11px; }
+.signal-editorial-site .footer-copyright { color: #a9a397; font-size: 11px; }
 
 @media (max-width: 960px) {
   .signal-editorial-site .menu-toggle { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid rgba(255,255,255,.1); border-radius: 13px; background: rgba(255,255,255,.04); }
@@ -736,12 +736,13 @@ body {
 }
 
 .auth-box { width: min(100%, 520px); margin: 0 auto; }
+.auth-box-checking { min-height: 650px; }
 .auth-box > .section-number { margin: 0 0 22px; color: var(--studio-red-soft); font-size: 10px; font-weight: 750; letter-spacing: .12em; }
 .auth-box > h1 { margin: 0; color: #fff; font-family: var(--font-display); font-size: clamp(44px, 5vw, 68px); font-weight: 620; line-height: .95; letter-spacing: -.055em; text-shadow: none; }
 .auth-box > h1 + p { max-width: 420px; margin: 22px 0 0; color: var(--studio-muted); font-size: 15px; }
 
 .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 36px 0 28px; padding: 5px; border: 1px solid var(--studio-border); border-radius: 16px; background: rgba(255,255,255,.035); }
-.auth-tabs button { min-height: 44px; border: 0; border-radius: 11px; background: transparent; color: #7f7a75; font: inherit; font-size: 13px; font-weight: 680; cursor: pointer; }
+.auth-tabs button { min-height: 44px; border: 0; border-radius: 11px; background: transparent; color: #9f9a94; font: inherit; font-size: 13px; font-weight: 680; cursor: pointer; }
 .auth-tabs button.active { background: #fff; color: #111; box-shadow: 0 5px 22px rgba(0,0,0,.2); }
 
 .auth-form { display: grid; gap: 17px; }
@@ -795,7 +796,7 @@ body {
 }
 .native-auth-submit:hover { background: #f02f42; transform: translateY(-1px); }
 .native-auth-submit:disabled { opacity: .58; cursor: wait; }
-.auth-provider-divider { display: flex; align-items: center; gap: 14px; color: #615d59; font-size: 9px; font-weight: 700; letter-spacing: .09em; }
+.auth-provider-divider { display: flex; align-items: center; gap: 14px; color: #aaa59f; font-size: 9px; font-weight: 700; letter-spacing: .09em; }
 .auth-provider-divider::before,
 .auth-provider-divider::after { content: ""; height: 1px; flex: 1; background: rgba(255,255,255,.08); }
 .social-auth-icons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
@@ -809,7 +810,7 @@ body {
 .remember-control input:checked + span { border-color: var(--studio-red); background: var(--studio-red); }
 .remember-control input:checked + span i { width: 8px; height: 5px; border-bottom: 2px solid #fff; border-left: 2px solid #fff; transform: rotate(-45deg) translate(1px,-1px); }
 .remember-control b { font-weight: 650; }
-.remember-control small { grid-column: 2; color: #68645f; font-size: 10px; }
+.remember-control small { grid-column: 2; color: #aaa59f; font-size: 10px; }
 .forgot-password-link { justify-self: start; margin-top: -5px; padding: 0; border: 0; background: transparent; color: #9b9690; font: inherit; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .forgot-password-link:hover { color: #fff; }
 .identity-passive-shield { display: flex; min-height: 42px; align-items: center; gap: 10px; padding: 0 13px; border: 1px solid rgba(78,198,139,.18); border-radius: 12px; background: rgba(78,198,139,.055); color: #83c8a5; font-size: 11px; }
@@ -1148,11 +1149,11 @@ body {
 .legal-content a { color: var(--studio-red-soft); }
 
 @media (max-width: 980px) {
-  .auth-entry-shell { grid-template-columns: 1fr; overflow: visible; }
+  .auth-entry-shell { grid-template-columns: 1fr; grid-template-rows: 86px auto auto; overflow: visible; }
   .auth-entry-header { grid-template-columns: 1fr auto; }
   .auth-entry-header > span { display: none; }
-  .account-art { min-height: 560px; margin: 18px; }
-  .account-panel { min-height: auto; padding-block: 72px 100px; }
+  .account-panel { grid-row: 2; min-height: auto; padding-block: 54px 88px; }
+  .account-art { grid-row: 3; min-height: 520px; margin: 18px; }
   .auth-version-rail { display: none; }
   .member-layout { grid-template-columns: 1fr; gap: 28px; }
   .member-layout > aside { position: static; grid-template-columns: repeat(5, minmax(130px,1fr)); overflow-x: auto; }
@@ -1169,11 +1170,12 @@ body {
   .auth-entry-header { min-width: 0; padding: 0 16px; }
   .auth-entry-header > a:last-child { font-size: 0; }
   .auth-entry-header > a:last-child b { font-size: 16px; }
-  .account-art { min-height: 430px; margin: 10px; padding: 28px; border-radius: 24px; }
+  .account-art { min-height: 360px; margin: 10px; padding: 24px; border-radius: 24px; }
   .account-quote p { margin-bottom: 28px; font-size: clamp(42px, 13vw, 62px); }
   .account-trust-list { grid-template-columns: 1fr; }
   .account-trust-list li { grid-template-columns: 30px 1fr; min-height: auto; align-items: center; gap: 8px; padding: 13px; }
-  .account-panel { padding: 54px 18px 84px; }
+  .account-panel { padding: 34px 18px 64px; }
+  .auth-box-checking { min-height: 907px; }
   .auth-box > h1 { font-size: 45px; }
   .member-topbar { grid-template-columns: 1fr auto; min-height: 70px; padding-inline: 14px; }
   .member-top-status { display: none; }
@@ -1474,8 +1476,8 @@ body {
   width: 72px;
   height: 72px;
   background: linear-gradient(145deg, #ff4053 5%, #df203e 48%, #12060c 86%);
-  -webkit-mask: url("/brand/swcreate-logo.png") center / contain no-repeat;
-  mask: url("/brand/swcreate-logo.png") center / contain no-repeat;
+  -webkit-mask: url("/brand/swcreate-logo-128.webp") center / contain no-repeat;
+  mask: url("/brand/swcreate-logo-128.webp") center / contain no-repeat;
 }
 .signal-editorial-site .product-card-1 .product-brand-mark img { width: 68px; height: 68px; }
 .signal-editorial-site .product-card-3 .product-brand-mark { border-color: rgba(0,0,0,.15); background: rgba(255,255,255,.72); box-shadow: 0 18px 45px rgba(59,43,30,.16); }
@@ -3327,6 +3329,21 @@ html.sw-layout-guard body { max-width: 100%; overflow-x: hidden; }
 
 .portal-language-dock { max-width: calc(100vw - 24px); }
 .portal-language-dock select { text-overflow: ellipsis; }
+
+.route-loading {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background: #09090a;
+  color: #d8d3cd;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.route-loading img { width: 54px; height: 54px; object-fit: contain; }
+
 
 /* Standalone 404 — the only route that must stay useful even when the app cannot resolve a page. */
 .not-found-page {

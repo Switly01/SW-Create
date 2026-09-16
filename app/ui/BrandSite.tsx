@@ -1,7 +1,7 @@
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE } from "../../src/api";
-import { savedSwLanguage, SW_LANGUAGES, type SwLanguage } from "../../src/languages";
+import { publicLanguagePath, publicPathLanguage, savedSwLanguage, SW_LANGUAGES, type SwLanguage } from "../../src/languages";
 import { BRAND_COPY } from "./brandCopy";
 import { SwDualCore } from "./SwDualCore";
 import { SpiralGallery } from "./SpiralGallery";
@@ -11,9 +11,15 @@ function Link({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorEleme
 }
 
 function Image({ fill, priority, style, ...props }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean }) {
+  const source = typeof props.src === "string" ? props.src : "";
+  const hqImage = source.startsWith("/editorial/hq2x-");
+  const fileName = hqImage ? source.slice("/editorial/".length) : "";
   return (
     <img
       {...props}
+      src={source}
+      srcSet={hqImage ? `/editorial/optimized/720/${fileName} 720w, /editorial/optimized/1440/${fileName} 1440w, ${source} 2200w` : props.srcSet}
+      sizes={hqImage ? "(max-width: 700px) 92vw, (max-width: 1100px) 64vw, 48vw" : props.sizes}
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       style={fill ? { ...style, position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" } : style}
@@ -29,7 +35,7 @@ const products = [
     copy: "SW hesabını, ürün erişimlerini ve stüdyonun bütün dijital üretimlerini tek merkezde buluşturan ana platform.",
     state: "CANLI",
     color: "acid",
-    logo: "/brand/swcreate-logo.png",
+    logo: "/brand/swcreate-logo.webp",
     logoClass: "sw-create-app-logo",
     visualKey: "sw-create",
     href: "https://swcreate.com",
@@ -128,6 +134,12 @@ export function BrandSite() {
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
     document.title = `SW Create — ${BRAND_COPY[language].hero.eyebrow}`;
+    const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    canonical?.setAttribute("href", new URL(publicLanguagePath(language), window.location.origin).toString());
+    const currentPathLanguage = publicPathLanguage();
+    if (!currentPathLanguage && window.location.pathname === "/" && language !== "tr") {
+      window.location.replace(`${publicLanguagePath(language)}${window.location.hash}`);
+    }
   }, [language]);
 
   useEffect(() => {
@@ -192,7 +204,7 @@ export function BrandSite() {
     };
     void pulseActivity();
     void loadStats();
-    statsTimer = window.setInterval(refreshVisibleStats, 15_000);
+    statsTimer = window.setInterval(refreshVisibleStats, 60_000);
     pulseTimer = window.setInterval(() => {
       if (!document.hidden) void pulseActivity();
     }, 45_000);
@@ -208,9 +220,14 @@ export function BrandSite() {
   }, []);
 
   function chooseLanguage(nextLanguage: Language) {
+    window.localStorage.setItem("sw-language", nextLanguage);
+    const isPublicLanguagePage = window.location.pathname === "/" || Boolean(publicPathLanguage());
+    if (isPublicLanguagePage) {
+      window.location.assign(`${publicLanguagePath(nextLanguage)}${window.location.hash || "#top"}`);
+      return;
+    }
     setLanguage(nextLanguage);
     setLanguageOpen(false);
-    window.localStorage.setItem("sw-language", nextLanguage);
   }
 
   useEffect(() => {
@@ -297,7 +314,7 @@ export function BrandSite() {
 
       <header className="topbar">
         <Link className="brand" href="#top" aria-label={ui.hero.home}>
-          <span className="brand-mark"><Image src="/brand/swcreate-logo.png" alt="" width={42} height={42} priority /></span>
+          <span className="brand-mark"><Image src="/brand/swcreate-logo-128.webp" alt="" width={42} height={42} priority /></span>
           <span className="brand-word"><strong>SW CREATE</strong><small>{ui.brandSubtitle}</small></span>
         </Link>
         <span className="topbar-signal" aria-hidden="true"><i /> SW CREATE · {ui.brandSubtitle}</span>
@@ -364,9 +381,9 @@ export function BrandSite() {
           <h2 id="field-atlas-title">{ui.field.title[0]}<br /><em>{ui.field.title[1]}</em><br />{ui.field.title[2]}</h2>
           <span>{ui.field.intro}</span>
         </header>
-        <div className="field-atlas" role="list" aria-label={ui.field.list}>
+        <div className="field-atlas" aria-label={ui.field.list}>
           {fieldNotes.map((note, index) => (
-            <figure className={`field-shot field-shot-${index + 1}`} key={note.src} role="listitem">
+            <figure className={`field-shot field-shot-${index + 1}`} key={note.src}>
               <div className="field-shot-image"><Image src={note.src} alt={ui.field.items[index].alt} fill /></div>
               <figcaption><span>{note.field}</span><strong>{ui.field.items[index].label}</strong></figcaption>
             </figure>
@@ -394,9 +411,9 @@ export function BrandSite() {
           <h2 id="technology-title">{ui.tech.title[0]}<br /><em>{ui.tech.title[1]}</em><br />{ui.tech.title[2]}<br />{ui.tech.title[3]}</h2>
           <span>{ui.tech.intro}</span>
         </header>
-        <div className="technology-reel" role="list" aria-label={ui.tech.list}>
+        <div className="technology-reel" aria-label={ui.tech.list}>
           {technologyFrames.map((frame, index) => (
-            <figure className={`technology-frame technology-frame-${index + 1}`} key={frame.src} role="listitem">
+            <figure className={`technology-frame technology-frame-${index + 1}`} key={frame.src}>
               <Image src={frame.src} alt={ui.tech.items[index].alt} fill />
               <figcaption>
                 <span>{ui.tech.items[index].field}</span>
@@ -432,7 +449,7 @@ export function BrandSite() {
           <div className="product-gallery">
             {products.map((product, index) => (
               <a className={`product-card product-card-${index + 1} ${product.color} slide-link`} href={product.name === "Play Connect" ? playConnectStore : product.href} key={product.name} target="_blank" rel="noreferrer">
-                <div className="product-visual"><Image src={`/editorial/localized/${product.visualKey}-${language}.png`} alt="" fill /></div>
+                <div className="product-visual"><Image src={`/editorial/localized/${product.visualKey}-${language}.webp`} alt="" fill /></div>
                 <div className="product-card-head"><b>{product.group === "site" ? ui.products.platform : product.group === "app" ? "APP" : ui.products.connector}</b><i>{ui.products.items[index].state}</i></div>
                 <div className="product-main"><div className="product-brand-mark" aria-hidden="true">{product.logoClass ? <span className={product.logoClass} /> : <Image src={product.logo} alt="" width={96} height={96} />}</div><p>{ui.products.items[index].kind}</p><h3>{product.name}</h3><span>{ui.products.items[index].copy}</span></div>
                 <div className="product-side"><span className="product-command">{ui.products.open}</span><span className="arrow">↗</span></div>
@@ -445,7 +462,7 @@ export function BrandSite() {
       <section id="studio" className="studio-section">
         <div className="studio-statement"><p className="section-number">{ui.studio.label}</p><h2>{ui.studio.title[0]}<br /><i>{ui.studio.title[1]}</i></h2></div>
         <div className="studio-workbench">
-          <div className="studio-seal" aria-hidden="true"><span className="studio-logo-mark"><Image src="/brand/swcreate-logo.png" alt="" width={150} height={150} /></span><small>{ui.studio.seal}</small></div>
+          <div className="studio-seal" aria-hidden="true"><span className="studio-logo-mark"><Image src="/brand/swcreate-logo.webp" alt="" width={150} height={150} /></span><small>{ui.studio.seal}</small></div>
           <div className="principle-grid">
             {ui.studio.principles.map(({ title, copy }) => <article key={title}><div><h3>{title}</h3><p>{copy}</p></div><b aria-hidden="true">↘</b></article>)}
           </div>
@@ -470,7 +487,7 @@ export function BrandSite() {
       <section className="closing-section"><p>{ui.closing.title[0]}<br />{ui.closing.title[1]}</p><Link className="identity-link" href="/account/?mode=register">{ui.closing.action} <span>↗</span></Link></section>
 
       <footer className="site-footer">
-        <div className="footer-identity"><Link className="brand footer-brand" href="#top" aria-label={ui.footer.top}><Image src="/brand/swcreate-logo.png" alt="" width={52} height={52} /></Link><p>{ui.footer.tagline}</p></div>
+        <div className="footer-identity"><Link className="brand footer-brand" href="#top" aria-label={ui.footer.top}><Image src="/brand/swcreate-logo.webp" alt="" width={52} height={52} /></Link><p>{ui.footer.tagline}</p></div>
         <div className="footer-links"><strong>SW CREATE</strong><Link href="#products">{ui.footer.products}</Link><Link href="#studio">{ui.footer.management}</Link><Link href="#edition">{ui.footer.edition}</Link></div>
         <div className="footer-links"><strong>{ui.footer.trust}</strong><Link href="/privacy">{ui.footer.privacy}</Link><Link href="/terms">{ui.footer.terms}</Link><a href="mailto:swcreate.info@gmail.com">swcreate.info@gmail.com</a></div>
         <div className="footer-privacy"><span className="pulse-dot" /><strong>{ui.footer.privacyTitle}</strong><p>{ui.footer.privacyCopy}</p></div>

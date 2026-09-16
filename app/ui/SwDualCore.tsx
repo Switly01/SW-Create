@@ -7,7 +7,7 @@ export function SwDualCore({ className = "", label = "SW Create" }: SwDualCorePr
   return (
     <span className={`sw-dual-core ${className}`.trim()} role="img" aria-label={label}>
       <span className="sw-dual-core-face sw-dual-core-tech" aria-hidden="true">
-        <img src="/brand/swcreate-logo.png" alt="" />
+        <img src="/brand/swcreate-logo.webp" alt="" />
       </span>
       <span className="sw-dual-core-pixels" aria-hidden="true">
         {Array.from({ length: 18 }, (_, index) => <i key={index} />)}

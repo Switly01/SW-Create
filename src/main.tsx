@@ -1,53 +1,21 @@
-import { StrictMode, useEffect, useState } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrandSite } from "../app/ui/BrandSite";
 import "../app/globals.css";
 import "../app/brand-character.css";
 import "../app/studio-noir.css";
-import { AccountPage } from "./AccountPage";
-import { MemberHomePage } from "./MemberHomePage";
-import { MemberPage } from "./MemberPage";
-import { LegalPage } from "./LegalPage";
-import { DashboardPage } from "./DashboardPage";
-import { PlansPage } from "./PlansPage";
-import { UpdateNotesPage } from "./UpdateNotesPage";
-import { PortalLocalization } from "./PortalLocalization";
-import { API_BASE } from "./api";
-import { NotFoundPage } from "./NotFoundPage";
+import { publicPathLanguage } from "./languages";
+const AccountPage = lazy(() => import("./AccountPage").then(module => ({ default: module.AccountPage })));
+const MemberHomePage = lazy(() => import("./MemberHomePage").then(module => ({ default: module.MemberHomePage })));
+const MemberPage = lazy(() => import("./MemberPage").then(module => ({ default: module.MemberPage })));
+const LegalPage = lazy(() => import("./LegalPage").then(module => ({ default: module.LegalPage })));
+const DashboardPage = lazy(() => import("./DashboardPage").then(module => ({ default: module.DashboardPage })));
+const PlansPage = lazy(() => import("./PlansPage").then(module => ({ default: module.PlansPage })));
+const UpdateNotesPage = lazy(() => import("./UpdateNotesPage").then(module => ({ default: module.UpdateNotesPage })));
+const PortalLocalization = lazy(() => import("./PortalLocalization").then(module => ({ default: module.PortalLocalization })));
+const NotFoundPage = lazy(() => import("./NotFoundPage").then(module => ({ default: module.NotFoundPage })));
 
 function PublicEntry() {
-  const [sessionChecked, setSessionChecked] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const fallback = window.setTimeout(() => {
-      if (!active) return;
-      controller.abort();
-      setSessionChecked(true);
-    }, 5_000);
-    fetch(`${API_BASE}/api/account`, { credentials: "include", cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        window.clearTimeout(fallback);
-        if (!active) return;
-        if (response.ok) {
-          window.location.replace("/home/");
-          return;
-        }
-        setSessionChecked(true);
-      })
-      .catch((error) => {
-        window.clearTimeout(fallback);
-        if (active && !(error instanceof DOMException && error.name === "AbortError")) setSessionChecked(true);
-      });
-    return () => {
-      active = false;
-      window.clearTimeout(fallback);
-      controller.abort();
-    };
-  }, []);
-
-  if (!sessionChecked) return <main className="public-entry-gate" aria-live="polite"><img src="/brand/swcreate-logo.png" alt="" /><span>SW HESABI KONTROL EDİLİYOR</span><i /></main>;
   return <BrandSite />;
 }
 
@@ -73,11 +41,13 @@ const page = notFoundDocument
       ? <LegalPage kind="terms" />
       : <PublicEntry />;
 
-const hasNativeLocalization = notFoundDocument || path === "/" || path.endsWith("/updates");
+const hasNativeLocalization = notFoundDocument || path === "/" || Boolean(publicPathLanguage()) || path.endsWith("/updates");
 const showPortalLanguageControl = !path.endsWith("/home");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {hasNativeLocalization ? page : <PortalLocalization showControl={showPortalLanguageControl}>{page}</PortalLocalization>}
+    <Suspense fallback={<main className="route-loading" aria-live="polite"><img src="/brand/swcreate-logo-128.webp" alt="" /><span>SW CREATE</span></main>}>
+      {hasNativeLocalization ? page : <PortalLocalization showControl={showPortalLanguageControl}>{page}</PortalLocalization>}
+    </Suspense>
   </StrictMode>,
 );
