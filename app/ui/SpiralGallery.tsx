@@ -33,32 +33,20 @@ export function SpiralGallery() {
     if (!ring) return;
     const items = Array.from(ring.querySelectorAll<HTMLElement>("figure"));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
     let frame = 0;
     let phase = 0;
     let previousTime = performance.now();
+    ring.style.transform = "none";
 
-    const onPointerMove = (event: PointerEvent) => {
-      pointer.targetX = (event.clientX / window.innerWidth - .5) * 2;
-      pointer.targetY = (event.clientY / window.innerHeight - .5) * 2;
-    };
-    const onPointerLeave = () => {
-      pointer.targetX = 0;
-      pointer.targetY = 0;
-    };
     const paint = (time: number) => {
       const mobile = window.innerWidth < 700;
-      pointer.x += (pointer.targetX - pointer.x) * .025;
-      pointer.y += (pointer.targetY - pointer.y) * .025;
       const delta = Math.min(34, Math.max(0, time - previousTime));
       previousTime = time;
-      phase += reducedMotion ? 0 : delta * .00009;
+      phase += reducedMotion ? 0 : delta * .000065;
 
       const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
       const radiusY = mobile ? 118 : Math.min(window.innerHeight * .2, 188);
       const radiusZ = mobile ? 270 : 520;
-      ring.style.transform = `rotateX(${pointer.y * -1.4}deg) rotateY(${pointer.x * 2.4}deg)`;
-
       items.forEach((item, index) => {
         const angle = index * (Math.PI * 2 / items.length) - Math.PI * .5 + phase;
         const x = Math.cos(angle) * radiusX;
@@ -75,27 +63,18 @@ export function SpiralGallery() {
         // bringing back the former hard appearance/disappearance.
         const fadeProgress = Math.max(0, Math.min(1, (depth - .52) / .3));
         const visibility = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-        const stackProgress = ((angle + Math.PI * .5) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        let tangent = Math.atan2(radiusY * Math.cos(angle), -radiusX * Math.sin(angle)) * 180 / Math.PI;
-        if (tangent > 90) tangent -= 180;
-        if (tangent < -90) tangent += 180;
-        item.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${tangent}deg) scale(${scale})`;
+        const bank = Math.cos(angle) * -5;
+        item.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${bank}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
         item.style.filter = "none";
-        // Reorder only while a card passes the dim rear point. This prevents
-        // two overlapping front cards from abruptly snapping over each other.
-        item.style.zIndex = String(10 + Math.floor(stackProgress / (Math.PI * 2) * 1000));
+        item.style.zIndex = String(10 + Math.round(depthEase * 100));
       });
       frame = window.requestAnimationFrame(paint);
     };
 
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    document.documentElement.addEventListener("mouseleave", onPointerLeave);
     frame = window.requestAnimationFrame(paint);
     return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      document.documentElement.removeEventListener("mouseleave", onPointerLeave);
       window.cancelAnimationFrame(frame);
     };
   }, []);
