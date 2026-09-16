@@ -49,35 +49,40 @@ export function SpiralGallery() {
       const easedShift = linearShift * linearShift * linearShift * (linearShift * (linearShift * 6 - 15) + 10);
       const progress = completedSteps + easedShift;
 
-      const radiusX = mobile ? 34 : 76;
-      const radiusY = mobile ? 210 : Math.min(window.innerHeight * .37, 290);
-      const radiusZ = mobile ? 160 : 250;
-      const visibleRadius = mobile ? 3.2 : 4.4;
+      // Keep the original, wide elliptical orbit while advancing through the
+      // full 100-frame collection one image at a time. A virtual ring keeps
+      // the visible spacing generous instead of squeezing every frame onto
+      // the ellipse at once.
+      const orbitSlots = mobile ? 14 : 20;
+      const angleStep = (Math.PI * 2) / orbitSlots;
+      const radiusX = mobile ? 250 : Math.min(window.innerWidth * .43, 620);
+      const radiusY = mobile ? 64 : Math.min(window.innerHeight * .105, 94);
+      const radiusZ = mobile ? 145 : 220;
+      const renderRadius = orbitSlots / 2 + 1;
 
       items.forEach((item, index) => {
-        let distance = (progress - index + items.length / 2) % items.length;
+        let distance = (index - progress + items.length / 2) % items.length;
         if (distance < 0) distance += items.length;
         distance -= items.length / 2;
         const absoluteDistance = Math.abs(distance);
-        if (absoluteDistance > visibleRadius + 1) {
+        if (absoluteDistance > renderRadius) {
           item.style.opacity = "0";
           item.style.visibility = "hidden";
           return;
         }
 
-        const position = distance / visibleRadius;
-        const angle = position * 1.38;
-        const x = Math.sin(angle * .82) * radiusX;
+        const angle = Math.PI * .5 + distance * angleStep;
+        const x = Math.cos(angle) * radiusX;
+        const z = Math.sin(angle) * radiusZ;
+        const depth = (z + radiusZ) / (radiusZ * 2);
+        const depthEase = depth * depth * (3 - 2 * depth);
         const y = Math.sin(angle) * radiusY;
-        const depth = Math.max(0, Math.cos(angle));
-        const depthEase = Math.pow(depth, 2.25);
-        const scale = .46 + depthEase * .54;
-        const edgeFade = Math.max(0, Math.min(1, visibleRadius + 1 - absoluteDistance));
-        const smoothEdge = edgeFade * edgeFade * (3 - 2 * edgeFade);
-        const visibility = smoothEdge * (.2 + depthEase * .8);
-        const orbitZ = (depthEase - .5) * radiusZ * 1.8;
-        const pitch = position * (mobile ? -13 : -20);
-        const yaw = position * (mobile ? 4 : 7);
+        const scale = .44 + depthEase * .56;
+        const fadeProgress = Math.max(0, Math.min(1, (depth - .5) / .32));
+        const visibility = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+        const orbitZ = (depth - .5) * radiusZ * 1.65;
+        const yaw = Math.cos(angle) * (mobile ? -10 : -16);
+        const pitch = -7 + depthEase * 4;
         item.style.transform = `translate3d(${x}px, ${y}px, ${orbitZ}px) rotateX(${pitch}deg) rotateY(${yaw}deg) scale(${scale})`;
         item.style.opacity = String(visibility);
         item.style.visibility = visibility < .015 ? "hidden" : "visible";
