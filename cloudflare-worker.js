@@ -382,26 +382,28 @@ async function accountPayload(env, user) {
           AND s.status = 'active'
           AND (s.current_period_end IS NULL OR s.current_period_end > ?)
         LIMIT 1
-      ), e.tier) AS tier
+      ), CASE WHEN e.expires_at IS NULL OR e.expires_at > ? THEN e.tier ELSE 'free' END) AS tier
     FROM sw_entitlements e
     JOIN sw_products p ON p.id = e.product_id
-    WHERE e.user_id = ? AND (e.expires_at IS NULL OR e.expires_at > ?)
+    WHERE e.user_id = ?
     ORDER BY p.name ASC
-  `).bind(now, user.id, now).all();
+  `).bind(now, now, user.id).all();
   const identities = await env.DB.prepare("SELECT provider FROM sw_oauth_identities WHERE user_id = ?")
     .bind(user.id).all();
   const productConnectionRows = await env.DB.prepare("SELECT product_id AS productId FROM sw_product_connections WHERE user_id = ?")
     .bind(user.id).all();
   const subscriptions = await env.DB.prepare(`
     SELECT s.id, s.product_id AS productId, p.name AS product, s.plan_id AS planId,
-      c.name AS planName, c.tier, s.status, s.source, s.starts_at AS startsAt,
+      c.name AS planName, c.tier,
+      CASE WHEN s.status = 'active' AND s.current_period_end IS NOT NULL AND s.current_period_end <= ? THEN 'expired' ELSE s.status END AS status,
+      s.source, s.starts_at AS startsAt,
       s.current_period_end AS currentPeriodEnd
     FROM sw_subscriptions s
     JOIN sw_products p ON p.id = s.product_id
     JOIN sw_plan_catalog c ON c.id = s.plan_id
     WHERE s.user_id = ?
     ORDER BY p.name ASC
-  `).bind(user.id).all();
+  `).bind(now, user.id).all();
   const connectedProviders = new Set((identities.results || []).map((item) => String(item.provider)));
   const connectedProducts = new Set((productConnectionRows.results || []).map((item) => String(item.productId)));
   const entitlementSlugs = new Set((rows.results || []).map((item) => String(item.slug)));
@@ -442,9 +444,11 @@ async function planCatalog(env, request, user) {
       FROM sw_plan_catalog c JOIN sw_products p ON p.id = c.product_id
       WHERE p.status = 'active' AND c.availability != 'retired'
       ORDER BY CASE c.product_id WHEN 'sw-create' THEN 0 WHEN 'play-streamers' THEN 1 ELSE 2 END, c.sort_order ASC`).all(),
-    env.DB.prepare(`SELECT product_id AS productId, plan_id AS planId, status, starts_at AS startsAt,
+    env.DB.prepare(`SELECT product_id AS productId, plan_id AS planId,
+        CASE WHEN status = 'active' AND current_period_end IS NOT NULL AND current_period_end <= ? THEN 'expired' ELSE status END AS status,
+        starts_at AS startsAt,
         current_period_end AS currentPeriodEnd
-      FROM sw_subscriptions WHERE user_id = ?`).bind(user.id).all(),
+      FROM sw_subscriptions WHERE user_id = ?`).bind(Math.floor(Date.now() / 1000), user.id).all(),
   ]);
   return json(request, { plans: plans.results || [], subscriptions: subscriptions.results || [] });
 }
@@ -1132,7 +1136,7 @@ async function recordProductActivity(env, request) {
 
 function normalizePlanRedemptionCode(value) {
   const code = String(value || "").trim().toLowerCase().replace(/\s+/g, "");
-  return /^sw-(?:[a-z0-9]{5}-){3}[a-z0-9]{5}$/.test(code) ? code : "";
+  return /^(?:sw-(?:[a-z0-9]{5}-){3}[a-z0-9]{5}|sw-(?:pp|pspp)-(?:[a-z0-9]{5}-){3}[a-z0-9]{5})$/.test(code) ? code : "";
 }
 
 async function redeemPlanCode(env, request, user) {
@@ -1142,60 +1146,74 @@ async function redeemPlanCode(env, request, user) {
   if (!code) return json(request, { error: "Geçerli bir SW plan kodu gir." }, 400);
 
   const codeHash = await sha256(`sw-plan-code:v1:${code}`);
-  const record = await env.DB.prepare(`SELECT id, status, grant_plan_id AS grantPlanId
+  const record = await env.DB.prepare(`SELECT id, status, grant_plan_id AS grantPlanId, duration_days AS durationDays
     FROM sw_plan_redemption_codes WHERE code_hash = ? LIMIT 1`).bind(codeHash).first();
   if (!record) return json(request, { error: "Bu SW plan kodu geçerli değil." }, 404);
   if (record.status !== "active") return json(request, { error: "Bu SW plan kodu daha önce kullanılmış." }, 409);
-  if (record.grantPlanId !== "sw-create-product-pro") return json(request, { error: "Bu kodun plan tanımı desteklenmiyor." }, 409);
+
+  const grants = {
+    "sw-create-product-pro": { productId: "sw-create", productName: "SW Create", source: "plan-code" },
+    "play-streamers-product-pro": { productId: "play-streamers", productName: "Play Streamers", source: "plan-code" },
+  };
+  const grant = grants[String(record.grantPlanId)] || null;
+  if (!grant) return json(request, { error: "Bu kodun plan tanımı desteklenmiyor." }, 409);
 
   const now = Math.floor(Date.now() / 1000);
+  const durationDays = Number(record.durationDays || 0);
+  if (durationDays < 0 || durationDays > 3660) return json(request, { error: "Bu kodun süre tanımı geçerli değil." }, 409);
+  const legacyBundle = durationDays === 0 && /^sw-(?:[a-z0-9]{5}-){3}[a-z0-9]{5}$/.test(code);
+  const grantTargets = legacyBundle
+    ? [grants["sw-create-product-pro"], grants["play-streamers-product-pro"]]
+    : [grant];
   const redemptionId = crypto.randomUUID();
-  const results = await env.DB.batch([
+  const mutations = [
     env.DB.prepare(`UPDATE sw_plan_redemption_codes
       SET status = 'redeemed', redemption_id = ?, redeemed_by_user_id = ?, redeemed_at = ?, updated_at = ?
       WHERE code_hash = ? AND status = 'active' AND redemption_id IS NULL`)
       .bind(redemptionId, user.id, now, now, codeHash),
-    env.DB.prepare(`INSERT INTO sw_entitlements
+  ];
+
+  let grantedExpiry = null;
+  for (const target of grantTargets) {
+    const targetPlanId = target.productId === "sw-create" ? "sw-create-product-pro" : "play-streamers-product-pro";
+    const existing = await env.DB.prepare(`SELECT plan_id AS planId, status, current_period_end AS currentPeriodEnd
+      FROM sw_subscriptions WHERE user_id = ? AND product_id = ? LIMIT 1`).bind(user.id, target.productId).first();
+    const existingPermanentPro = existing?.planId === targetPlanId
+      && existing?.status === "active"
+      && existing?.currentPeriodEnd == null;
+    const expiresAt = durationDays === 0 || existingPermanentPro
+      ? null
+      : Math.max(now, Number(existing?.currentPeriodEnd || 0)) + (durationDays * 24 * 60 * 60);
+    if (target.productId === grant.productId) grantedExpiry = expiresAt;
+    mutations.push(env.DB.prepare(`INSERT INTO sw_entitlements
       (id, user_id, product_id, tier, source, starts_at, expires_at, created_at, updated_at)
-      SELECT ?, ?, 'sw-create', 'product-pro', 'plan-code', ?, NULL, ?, ?
+      SELECT ?, ?, ?, 'product-pro', ?, ?, ?, ?, ?
       FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
       ON CONFLICT(user_id, product_id) DO UPDATE SET
-        tier = 'product-pro', source = 'plan-code', starts_at = excluded.starts_at,
-        expires_at = NULL, updated_at = excluded.updated_at`)
-      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
-    env.DB.prepare(`INSERT INTO sw_entitlements
-      (id, user_id, product_id, tier, source, starts_at, expires_at, created_at, updated_at)
-      SELECT ?, ?, 'play-streamers', 'product-pro', 'sw-create-product-pro-bundle', ?, NULL, ?, ?
-      FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
-      ON CONFLICT(user_id, product_id) DO UPDATE SET
-        tier = 'product-pro', source = 'sw-create-product-pro-bundle', starts_at = excluded.starts_at,
-        expires_at = NULL, updated_at = excluded.updated_at`)
-      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
-    env.DB.prepare(`INSERT INTO sw_subscriptions
+        tier = 'product-pro', source = excluded.source, starts_at = excluded.starts_at,
+        expires_at = excluded.expires_at, updated_at = excluded.updated_at`)
+      .bind(crypto.randomUUID(), user.id, target.productId, target.source, now, expiresAt, now, now, codeHash, redemptionId));
+    mutations.push(env.DB.prepare(`INSERT INTO sw_subscriptions
       (id, user_id, product_id, plan_id, status, source, starts_at, current_period_end, cancelled_at, created_at, updated_at)
-      SELECT ?, ?, 'sw-create', 'sw-create-product-pro', 'active', 'plan-code', ?, NULL, NULL, ?, ?
+      SELECT ?, ?, ?, ?, 'active', ?, ?, ?, NULL, ?, ?
       FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
       ON CONFLICT(user_id, product_id) DO UPDATE SET
-        plan_id = 'sw-create-product-pro', status = 'active', source = 'plan-code',
-        starts_at = excluded.starts_at, current_period_end = NULL, cancelled_at = NULL,
+        plan_id = excluded.plan_id, status = 'active', source = excluded.source,
+        starts_at = excluded.starts_at, current_period_end = excluded.current_period_end, cancelled_at = NULL,
         updated_at = excluded.updated_at`)
-      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
-    env.DB.prepare(`INSERT INTO sw_subscriptions
-      (id, user_id, product_id, plan_id, status, source, starts_at, current_period_end, cancelled_at, created_at, updated_at)
-      SELECT ?, ?, 'play-streamers', 'play-streamers-product-pro', 'active', 'sw-create-product-pro-bundle', ?, NULL, NULL, ?, ?
-      FROM sw_plan_redemption_codes WHERE code_hash = ? AND redemption_id = ?
-      ON CONFLICT(user_id, product_id) DO UPDATE SET
-        plan_id = 'play-streamers-product-pro', status = 'active', source = 'sw-create-product-pro-bundle',
-        starts_at = excluded.starts_at, current_period_end = NULL, cancelled_at = NULL,
-        updated_at = excluded.updated_at`)
-      .bind(crypto.randomUUID(), user.id, now, now, now, codeHash, redemptionId),
-  ]);
+      .bind(crypto.randomUUID(), user.id, target.productId, targetPlanId, target.source, now, expiresAt, now, now, codeHash, redemptionId));
+  }
+  const results = await env.DB.batch(mutations);
 
   if (Number(results[0]?.meta?.changes || 0) !== 1) return json(request, { error: "Bu SW plan kodu daha önce kullanılmış." }, 409);
   await recordSecurityEvent(env, request, "plan_code.redeem", user.id);
   return json(request, {
     ok: true,
-    message: "SW Create ve Play Streamers Product Pro süresiz etkinleştirildi.",
+    message: legacyBundle
+      ? "SW Create ve Play Streamers Product Pro süresiz etkinleştirildi."
+      : grantedExpiry
+      ? `${grant.productName} Product Pro ${durationDays} gün etkinleştirildi.`
+      : `${grant.productName} Product Pro süresiz etkinleştirildi.`,
     account: await accountPayload(env, user),
   });
 }
