@@ -42,6 +42,7 @@ export function SpiralGallery() {
 
     const paint = (time: number) => {
       const mobile = window.innerWidth < 700;
+      const largeDesktop = window.innerWidth >= 1180;
       const elapsed = reducedMotion ? 0 : Math.max(0, time - startedAt);
       const completedSteps = Math.floor(elapsed / cycleDuration);
       const phase = elapsed % cycleDuration;
@@ -56,8 +57,10 @@ export function SpiralGallery() {
       const angleStep = (Math.PI * 2) / orbitSlots;
       const orbitRadius = mobile
         ? Math.min(window.innerWidth * .38, 165)
-        : Math.min(window.innerWidth * .245, window.innerHeight * .34, 265);
-      const radiusZ = mobile ? 175 : 255;
+        : largeDesktop
+          ? Math.min(window.innerWidth * .31, window.innerHeight * .43, 360)
+          : Math.min(window.innerWidth * .245, window.innerHeight * .34, 265);
+      const radiusZ = mobile ? 175 : largeDesktop ? 330 : 255;
       const renderRadius = orbitSlots / 2;
 
       items.forEach((item, index) => {
