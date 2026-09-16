@@ -27,9 +27,25 @@ jobs:
         env:
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      # The stock upload-pages-artifact action excludes every dot-prefixed
+      # path. Build the Pages archive directly so standards-based files such
+      # as /.well-known/security.txt and /.nojekyll reach production.
+      - name: Archive Pages artifact
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            --directory dist \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            .
+      - name: Upload Pages artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          path: dist
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
 
   deploy:
     environment:
